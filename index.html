@@ -4,7 +4,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Carp Run Alarm Simulator (Delkim Sound Final)</title>
+  <title>Carp Run Alarm Simulator (PWA Install Enabled)</title>
 
   <meta name="theme-color" content="#111827">
   <link rel="manifest" href="/manifest.json">
@@ -32,6 +32,7 @@
       border: 2px solid #374151;
       padding: 30px;
       transition: all 0.2s ease-in-out;
+      position: relative;
     }
 
     .alarm-flash {
@@ -70,6 +71,26 @@
       padding: 1rem;
       margin-top: 1rem;
       border-left: 4px solid #3b82f6;
+    }
+
+    #install-btn {
+      display: none;
+      position: fixed;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      background-color: #3b82f6;
+      color: white;
+      font-weight: bold;
+      padding: 12px 24px;
+      border-radius: 8px;
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+      z-index: 9999;
+      transition: background-color 0.3s ease;
+    }
+
+    #install-btn:hover {
+      background-color: #2563eb;
     }
   </style>
 </head>
@@ -112,12 +133,15 @@
     </div>
   </div>
 
+  <!-- Install App Button -->
+  <button id="install-btn">Install Carp Run App</button>
+
   <script type="module">
     // --- PWA Registration ---
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
         navigator.serviceWorker.register('/service-worker.js')
-          .then(registration => console.log('ServiceWorker registered:', registration.scope))
+          .then(reg => console.log('ServiceWorker registered:', reg.scope))
           .catch(err => console.log('ServiceWorker registration failed:', err));
       });
     }
@@ -131,7 +155,7 @@
 
     // --- Real Delkim Sound Setup ---
     const alarmSound = new Audio('./assets/CarpRunSound001.mp3');
-    alarmSound.loop = true; // keep looping while fish is on
+    alarmSound.loop = true;
 
     function startAlarmSound() {
       alarmSound.currentTime = 0;
@@ -150,12 +174,13 @@
     const reelButton = document.getElementById('reel-button');
     const logContentEl = document.getElementById('log-content');
     const toggleFishingButton = document.getElementById('toggle-fishing-button');
+    const installBtn = document.getElementById('install-btn');
 
     // --- Simulation Logic ---
     function getNextBiteTime() {
-      // NEW RANGE: 2 to 30 minutes
-      const minMs = 120000;   // 2 minutes
-      const maxMs = 1800000;  // 30 minutes
+      // RANGE: 2 to 30 minutes
+      const minMs = 120000;
+      const maxMs = 1800000;
       return Math.floor(Math.random() * (maxMs - minMs + 1)) + minMs;
     }
 
@@ -178,7 +203,6 @@
       }
     }
 
-    // --- Main Fishing Logic ---
     function startFishingCycle() {
       isFishing = true;
       toggleFishingButton.textContent = "Stop Fishing";
@@ -251,7 +275,6 @@
     function generateCarpDetails() {
       const speciesList = ['Common Carp', 'Mirror Carp', 'Ghost Carp', 'Leather Carp', 'Fully Scaled Carp'];
       const species = speciesList[Math.floor(Math.random() * speciesList.length)];
-
       let weightLbs;
       const tier = Math.random();
 
@@ -279,6 +302,20 @@
       `;
       logContentEl.innerHTML = logHTML;
     }
+
+    // --- PWA Install Button Logic ---
+    let deferredPrompt;
+    window.addEventListener('beforeinstallprompt', (e) => {
+      e.preventDefault();
+      deferredPrompt = e;
+      installBtn.style.display = 'block';
+    });
+
+    installBtn.addEventListener('click', () => {
+      installBtn.style.display = 'none';
+      deferredPrompt.prompt();
+      deferredPrompt.userChoice.then(() => deferredPrompt = null);
+    });
 
     // --- Initialization ---
     window.onload = function () {
