@@ -56,19 +56,14 @@
 
     <div class="container bg-gray-800 rounded-xl shadow-2xl">
 
-        <!-- Logo Placeholder Area -->
+        <!-- 1. Logo Placeholder Area (Made Bigger: w-48 h-48) -->
         <div class="mb-6 text-center">
             <!-- Ensure your logo.png is in the 'assets' folder! -->
-            <img src="./assets/logo.png" alt="Your Custom Carp Run Logo" class="mx-auto w-32 h-32 object-contain rounded-full shadow-lg p-2 bg-gray-900" onerror="this.src='https://placehold.co/128x128/1F2937/FFFFFF?text=LOGO'">
+            <img src="./assets/logo.png" alt="Your Custom Carp Run Logo" class="mx-auto w-48 h-48 object-contain rounded-full shadow-lg p-2 bg-gray-900" onerror="this.src='https://placehold.co/192x192/1F2937/FFFFFF?text=LOGO'">
         </div>
         
-        <!-- Status and Timer Display -->
-        <div id="statusDisplay" class="fishing-status text-center text-xl font-bold p-4 mb-6 rounded-lg bg-gray-900 shadow-inner">
-            <p>Ready to cast out?</p>
-        </div>
-
-        <!-- Main Button Area -->
-        <div class="flex flex-col space-y-4">
+        <!-- 2. Main Button Area (Moved up) -->
+        <div class="flex flex-col space-y-4 mb-6">
             <button id="mainButton" 
                     class="btn-start text-white font-extrabold py-4 px-6 rounded-xl text-lg w-full uppercase"
                     onclick="startFishing()">
@@ -76,7 +71,12 @@
             </button>
         </div>
 
-        <!-- Catch Stats Display -->
+        <!-- 3. Status and Timer Display (Moved down) -->
+        <div id="statusDisplay" class="fishing-status text-center text-xl font-bold p-4 mb-6 rounded-lg bg-gray-900 shadow-inner">
+            <p>Ready to cast out?</p>
+        </div>
+
+        <!-- 4. Catch Stats Display -->
         <div id="catchStats" class="mt-6 p-4 rounded-lg bg-gray-900 shadow-inner hidden">
             <h3 class="text-xl font-bold mb-3 text-center text-green-400">Catch Log</h3>
             <!-- Stats will be populated here -->
