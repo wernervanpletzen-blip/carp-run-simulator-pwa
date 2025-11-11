@@ -171,20 +171,55 @@
             const maxMs = 30 * 1000; // 30 seconds
             return Math.floor(Math.random() * (maxMs - minMs + 1)) + minMs;
         };
+        
+        /**
+         * Cleans up timers, audio, and resets the UI to the initial 'Start Fishing' state.
+         * @param {string} message - The status message to display after stopping.
+         */
+        const stopFishing = (message = '<p>Ready to cast out?</p>') => {
+            if (biteTimer) clearTimeout(biteTimer);
+            if (reelTimer) clearTimeout(reelTimer);
+            stopAlarm(); 
+
+            // Clear countdown interval if running (e.g., if user hits stop during reel-in countdown)
+            const id = MAIN_BUTTON.getAttribute('data-countdown-id');
+            if (id) {
+                clearInterval(parseInt(id));
+                MAIN_BUTTON.removeAttribute('data-countdown-id');
+            }
+
+            isFishing = false;
+            
+            // Reset button to initial state
+            MAIN_BUTTON.textContent = 'Start Fishing';
+            MAIN_BUTTON.disabled = false;
+            MAIN_BUTTON.classList.remove('bg-red-700', 'hover:bg-red-600', 'btn-reel');
+            MAIN_BUTTON.classList.add('btn-start');
+            MAIN_BUTTON.onclick = startFishing;
+            
+            STATUS_DISPLAY.innerHTML = message;
+        };
 
         const startFishing = async () => {
-            if (isFishing) return;
+            // TOGGLE LOGIC: If currently fishing, stop the process
+            if (isFishing) {
+                stopFishing('<p class="text-yellow-400">Fishing stopped. Ready to cast out again.</p>');
+                return;
+            }
 
             initAudio(); // Initialize audio object on user interaction
 
+            // --- START FISHING LOGIC ---
             isFishing = true;
             CATCH_STATS.classList.add('hidden');
             CATCH_STATS.innerHTML = `<h3 class="text-xl font-bold mb-3 text-center text-green-400">Catch Log</h3>`;
             
-            MAIN_BUTTON.textContent = 'Bait set. Waiting for a run...';
-            MAIN_BUTTON.disabled = true;
+            // Change UI for START/STOP button
+            MAIN_BUTTON.textContent = 'Stop Fishing';
+            MAIN_BUTTON.disabled = false; // Keep enabled to allow immediate stopping
             MAIN_BUTTON.classList.remove('btn-start');
-            MAIN_BUTTON.classList.add('bg-gray-700', 'cursor-not-allowed');
+            MAIN_BUTTON.classList.add('bg-red-700', 'hover:bg-red-600'); // Use red for stop/cancel button
+            
             STATUS_DISPLAY.innerHTML = '<p class="text-yellow-400">Casting out... Tight lines!</p>';
 
             biteTime = generateLongGameBiteTime();
@@ -196,9 +231,10 @@
         const startBite = () => {
             STATUS_DISPLAY.innerHTML = '<p class="text-red-500">RUN! RUN! RUN!</p>';
             
+            // The button action is temporarily overridden to reel in the fish
             MAIN_BUTTON.textContent = `REEL IN! (15s)`;
             MAIN_BUTTON.disabled = false;
-            MAIN_BUTTON.classList.remove('bg-gray-700', 'cursor-not-allowed');
+            MAIN_BUTTON.classList.remove('bg-red-700', 'hover:bg-red-600');
             MAIN_BUTTON.classList.add('btn-reel');
             MAIN_BUTTON.onclick = () => handleReelIn(true); // User succeeded
             
@@ -251,22 +287,11 @@
             }
             if (!isFishing && !success) {
                 // Failure already happened
-            } else if (isFishing) {
-                // Normal flow: Stop fishing and clean up timers
-                isFishing = false;
-                stopAlarm();
-                clearTimeout(reelTimer);
-                
-                const id = MAIN_BUTTON.getAttribute('data-countdown-id');
-                if (id) {
-                    clearInterval(parseInt(id));
-                    MAIN_BUTTON.removeAttribute('data-countdown-id');
-                }
             }
             
-            MAIN_BUTTON.onclick = startFishing; // Reset button action
-            MAIN_BUTTON.classList.remove('btn-reel');
-            MAIN_BUTTON.classList.add('btn-start');
+            // 1. Cleanup timers and reset state using the new central function
+            // Note: We call this before setting the final message to ensure audio stops instantly
+            stopFishing();
             
             let message = '';
             let statsHtml = '';
@@ -288,8 +313,6 @@
             }
 
             STATUS_DISPLAY.innerHTML = `<p>${message}</p>`;
-            MAIN_BUTTON.textContent = 'Start Fishing';
-            MAIN_BUTTON.disabled = false;
             
             // Update the Catch Log
             CATCH_STATS.classList.remove('hidden');
