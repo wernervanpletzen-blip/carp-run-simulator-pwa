@@ -2,342 +2,284 @@
 <html lang="en">
 
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Carp Run Alarm Simulator (Simplified)</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Carp Run Alarm Simulator (Delkim Sound Version)</title>
 
-    <!-- PWA / Mobile App Settings (Manifest and Theme Color) -->
-    <meta name="theme-color" content="#111827">
-    <link rel="manifest" href="/manifest.json">
+  <meta name="theme-color" content="#111827">
+  <link rel="manifest" href="/manifest.json">
+  <script src="https://cdn.tailwindcss.com"></script>
 
-    <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Load Tone.js for the alarm sound -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.min.js"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap');
+    body {
+      font-family: 'Inter', sans-serif;
+      background-color: #000000;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      padding: 20px;
+    }
 
-    <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap');
-        body {
-            font-family: 'Inter', sans-serif;
-            background-color: #000000;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            min-height: 100vh;
-            padding: 20px;
-        }
-        #app-container {
-            background-color: #111827;
-            color: #ffffff;
-            max-width: 600px;
-            width: 100%;
-            border-radius: 1rem;
-            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.6), 0 10px 10px -5px rgba(0, 0, 0, 0.3);
-            border: 2px solid #374151;
-            padding: 30px;
-            transition: all 0.2s ease-in-out;
-        }
+    #app-container {
+      background-color: #111827;
+      color: #ffffff;
+      max-width: 600px;
+      width: 100%;
+      border-radius: 1rem;
+      box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.6), 0 10px 10px -5px rgba(0, 0, 0, 0.3);
+      border: 2px solid #374151;
+      padding: 30px;
+      transition: all 0.2s ease-in-out;
+    }
 
-        .alarm-flash {
-            animation: flash 0.3s infinite alternate;
-            background-color: #ff3333 !important;
-            color: #fff !important;
-        }
-        @keyframes flash {
-            from { box-shadow: 0 0 15px #ff3333, 0 0 5px #ff3333; }
-            to { box-shadow: 0 0 30px #ff0000, 0 0 10px #ff0000; }
-        }
+    .alarm-flash {
+      animation: flash 0.3s infinite alternate;
+      background-color: #ff3333 !important;
+      color: #fff !important;
+    }
 
-        .fishing-status {
-            font-size: 1.25rem;
-            font-weight: 700;
-            color: #4ade80;
-        }
+    @keyframes flash {
+      from {
+        box-shadow: 0 0 15px #ff3333, 0 0 5px #ff3333;
+      }
 
-        .reel-button {
-            transition: transform 0.1s ease-out, background-color 0.2s;
-        }
-        .reel-button:active {
-            transform: scale(0.98);
-        }
+      to {
+        box-shadow: 0 0 30px #ff0000, 0 0 10px #ff0000;
+      }
+    }
 
-        .catch-stats {
-            background-color: #1f2937;
-            border-radius: 0.5rem;
-            padding: 1rem;
-            margin-top: 1rem;
-            border-left: 4px solid #3b82f6;
-        }
-    </style>
+    .fishing-status {
+      font-size: 1.25rem;
+      font-weight: 700;
+      color: #4ade80;
+    }
+
+    .reel-button {
+      transition: transform 0.1s ease-out, background-color 0.2s;
+    }
+
+    .reel-button:active {
+      transform: scale(0.98);
+    }
+
+    .catch-stats {
+      background-color: #1f2937;
+      border-radius: 0.5rem;
+      padding: 1rem;
+      margin-top: 1rem;
+      border-left: 4px solid #3b82f6;
+    }
+  </style>
 </head>
 
 <body>
 
-    <div id="app-container" class="rounded-xl">
-        <!-- CUSTOM LOGO AREA -->
-        <div class="text-center mb-6">
-            <img src="./assets/logo.png" alt="Your Custom Carp Run Logo" class="mx-auto w-32 h-32 object-contain" />
-        </div>
-
-        <!-- Control Buttons -->
-        <div class="flex justify-center mb-6">
-            <button id="toggle-fishing-button" class="px-6 py-2 text-lg font-bold rounded-lg bg-yellow-500 text-gray-900 hover:bg-yellow-400 transition" onclick="toggleFishing()">
-                Start Fishing
-            </button>
-        </div>
-
-        <!-- Status Display -->
-        <div id="status-display" class="p-4 mb-6 text-center rounded-lg bg-gray-700">
-            <p id="current-status" class="fishing-status">Stopped</p>
-            <p id="time-to-bite" class="text-sm mt-1 text-gray-400">Ready to cast your lines! The wait could be anywhere from 5 to 20 seconds.</p>
-        </div>
-
-        <!-- Main Action Area -->
-        <div class="flex flex-col items-center space-y-4">
-            <button id="reel-button" class="reel-button w-full px-6 py-4 text-2xl font-bold rounded-xl bg-green-500 text-gray-900 hover:bg-green-400 transition hidden"
-                onclick="reelIn()">
-                Reel In! (15s left)
-            </button>
-
-            <!-- Catch Log -->
-            <div id="last-catch-log" class="w-full mt-6 text-sm">
-                <h2 class="text-xl font-bold mb-2 text-white uppercase border-b border-blue-800 pb-1">
-                    Last Catch Statistics
-                </h2>
-                <div id="log-content" class="catch-stats">
-                    <p class="text-gray-300">No successful catches yet. Tight lines!</p>
-                </div>
-            </div>
-        </div>
+  <div id="app-container" class="rounded-xl">
+    <div class="text-center mb-6">
+      <img src="./assets/logo.png" alt="Carp Run Logo" class="mx-auto w-32 h-32 object-contain" />
     </div>
 
-    <script type="module">
-        // --- PWA Service Worker Registration ---
-        if ('serviceWorker' in navigator) {
-            window.addEventListener('load', () => {
-                navigator.serviceWorker.register('/service-worker.js')
-                    .then(registration => {
-                        console.log('ServiceWorker registration successful with scope:', registration.scope);
-                    })
-                    .catch(err => {
-                        console.log('ServiceWorker registration failed:', err);
-                    });
-            });
+    <div class="flex justify-center mb-6">
+      <button id="toggle-fishing-button"
+        class="px-6 py-2 text-lg font-bold rounded-lg bg-yellow-500 text-gray-900 hover:bg-yellow-400 transition"
+        onclick="toggleFishing()">Start Fishing</button>
+    </div>
+
+    <div id="status-display" class="p-4 mb-6 text-center rounded-lg bg-gray-700">
+      <p id="current-status" class="fishing-status">Stopped</p>
+      <p id="time-to-bite" class="text-sm mt-1 text-gray-400">Ready to cast your lines! The wait could be anywhere from 5
+        to 20 seconds.</p>
+    </div>
+
+    <div class="flex flex-col items-center space-y-4">
+      <button id="reel-button"
+        class="reel-button w-full px-6 py-4 text-2xl font-bold rounded-xl bg-green-500 text-gray-900 hover:bg-green-400 transition hidden"
+        onclick="reelIn()">
+        Reel In! (15s left)
+      </button>
+
+      <div id="last-catch-log" class="w-full mt-6 text-sm">
+        <h2 class="text-xl font-bold mb-2 text-white uppercase border-b border-blue-800 pb-1">Last Catch Statistics</h2>
+        <div id="log-content" class="catch-stats">
+          <p class="text-gray-300">No successful catches yet. Tight lines!</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script type="module">
+    // --- PWA Registration ---
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/service-worker.js')
+          .then(registration => console.log('ServiceWorker registered:', registration.scope))
+          .catch(err => console.log('ServiceWorker registration failed:', err));
+      });
+    }
+
+    // --- Global State ---
+    let status = 'STOPPED';
+    let isFishing = false;
+    let catchTimer = null;
+    let biteTimeout = null;
+    let countdownValue = 0;
+
+    // --- Delkim Sound Setup ---
+    const alarmSound = new Audio('./assets/CarpRunSound.mp3');
+    alarmSound.loop = true; // Keep looping until reel in
+
+    function startAlarmSound() {
+      alarmSound.currentTime = 0;
+      alarmSound.play().catch(err => console.warn("Autoplay prevented:", err));
+    }
+
+    function stopAlarmSound() {
+      alarmSound.pause();
+      alarmSound.currentTime = 0;
+    }
+
+    // --- DOM Elements ---
+    const appContainer = document.getElementById('app-container');
+    const currentStatusEl = document.getElementById('current-status');
+    const timeToBiteEl = document.getElementById('time-to-bite');
+    const reelButton = document.getElementById('reel-button');
+    const logContentEl = document.getElementById('log-content');
+    const toggleFishingButton = document.getElementById('toggle-fishing-button');
+
+    // --- Simulation Logic ---
+    function getNextBiteTime() {
+      const minMs = 5000;  // 5 seconds
+      const maxMs = 20000; // 20 seconds
+      return Math.floor(Math.random() * (maxMs - minMs + 1)) + minMs;
+    }
+
+    function updateStatus(newStatus, message) {
+      status = newStatus;
+      currentStatusEl.textContent = `STATUS: ${newStatus}`;
+      appContainer.classList.remove('alarm-flash');
+      reelButton.classList.add('hidden');
+
+      if (status !== 'ALARM') {
+        timeToBiteEl.textContent = message;
+      }
+
+      if (status === 'ALARM') {
+        appContainer.classList.add('alarm-flash');
+        reelButton.classList.remove('hidden');
+        reelButton.textContent = `Reel In! (${countdownValue}s left)`;
+      } else {
+        reelButton.classList.add('hidden');
+      }
+    }
+
+    // --- Main Fishing Logic ---
+    function startFishingCycle() {
+      isFishing = true;
+      toggleFishingButton.textContent = "Stop Fishing";
+      toggleFishingButton.classList.remove('bg-yellow-500');
+      toggleFishingButton.classList.add('bg-red-600');
+
+      if (biteTimeout) clearTimeout(biteTimeout);
+      const nextBiteMs = getNextBiteTime();
+      biteTimeout = setTimeout(startBite, nextBiteMs);
+
+      timeToBiteEl.textContent = `Bait set. Waiting for the sound of a big run...`;
+      updateStatus('FISHING', timeToBiteEl.textContent);
+    }
+
+    function stopFishing() {
+      isFishing = false;
+      toggleFishingButton.textContent = "Start Fishing";
+      toggleFishingButton.classList.remove('bg-red-600');
+      toggleFishingButton.classList.add('bg-yellow-500');
+
+      if (biteTimeout) clearTimeout(biteTimeout);
+      if (catchTimer) clearInterval(catchTimer);
+
+      stopAlarmSound();
+      updateStatus('STOPPED', `Fishing stopped. Press Start Fishing to cast again.`);
+    }
+
+    window.toggleFishing = function () {
+      if (isFishing) stopFishing();
+      else startFishingCycle();
+    }
+
+    function startBite() {
+      if (!isFishing) return;
+
+      console.log("!!! FISH ON !!!");
+      countdownValue = 15;
+      updateStatus('ALARM', `*** FISH ON! REEL IN QUICK! ***`);
+      startAlarmSound();
+
+      catchTimer = setInterval(() => {
+        countdownValue--;
+        reelButton.textContent = `REEL IN! (${countdownValue}S LEFT)`;
+
+        if (countdownValue <= 0) {
+          clearInterval(catchTimer);
+          catchTimer = null;
+          stopAlarmSound();
+
+          updateStatus('LOST', '❌ TOO SLOW! THE LINE SNAPPED AND THE FISH GOT AWAY!');
+          if (isFishing) setTimeout(startFishingCycle, 5000);
         }
+      }, 1000);
+    }
 
-        // --- Global State ---
-        let status = 'STOPPED';
-        let isFishing = false;
-        let catchTimer = null;
-        let biteTimeout = null;
-        let countdownValue = 0;
+    window.reelIn = function () {
+      if (status !== 'ALARM') return;
 
-        // --- Alarm Configuration (Rapid Triple-Beep Tone) ---
-        const ALARM_PATTERN = [
-            { time: 0.0, note: "A6" },
-            { time: 0.25, note: "A6" },
-            { time: 0.5, note: "A6" }
-        ];
-        const ALARM_LOOP_INTERVAL = 1.2;
+      clearInterval(catchTimer);
+      catchTimer = null;
+      stopAlarmSound();
 
-        // --- Tone.js (Audio Setup) ---
-        let synth, alarmPart;
-        let isAudioInitialized = false;
+      updateStatus('CAUGHT', '🎉 REELING SUCCESSFUL!');
+      const carpData = generateCarpDetails();
+      displayCarpStats(carpData);
 
-        function initAudio() {
-            if (isAudioInitialized) return;
-            try {
-                Tone.start();
+      if (isFishing) setTimeout(startFishingCycle, 5000);
+    }
 
-                synth = new Tone.Synth({
-                    oscillator: { type: "square" },
-                    envelope: { attack: 0.001, decay: 0.08, sustain: 0.0, release: 0.1 },
-                    volume: -4
-                }).toDestination();
+    function generateCarpDetails() {
+      const speciesList = ['Common Carp', 'Mirror Carp', 'Ghost Carp', 'Leather Carp', 'Fully Scaled Carp'];
+      const species = speciesList[Math.floor(Math.random() * speciesList.length)];
 
-                alarmPart = new Tone.Part((time, value) => {
-                    synth.triggerAttackRelease(value.note, "16n", time);
-                }, ALARM_PATTERN).start(0);
+      let weightLbs;
+      const tier = Math.random();
 
-                alarmPart.loop = true;
-                alarmPart.loopEnd = `${ALARM_LOOP_INTERVAL}`;
+      if (tier < 0.50) weightLbs = Math.random() * (35 - 15) + 15;
+      else if (tier < 0.85) weightLbs = Math.random() * (50 - 35) + 35;
+      else weightLbs = Math.random() * (70 - 50) + 50;
 
-                Tone.Transport.stop();
-                isAudioInitialized = true;
-            } catch (e) {
-                console.error("Could not initialize audio:", e);
-                isAudioInitialized = true;
-            }
-        }
+      const roundedWeight = (Math.round(weightLbs * 10) / 10).toFixed(1);
+      return {
+        species,
+        weight: roundedWeight,
+        timestamp: new Date().toLocaleString()
+      };
+    }
 
-        function startAlarmSound() {
-            if (!isAudioInitialized) return;
-            Tone.Transport.start("+0.05");
-        }
+    function displayCarpStats(carpData) {
+      updateStatus('CAUGHT', `🎉 SUCCESS! You landed a ${carpData.weight}LB ${carpData.species}!`);
+      const logHTML = `
+        <div class="space-y-2 text-white">
+          <p class="font-extrabold text-2xl text-yellow-400">${carpData.weight} LBS</p>
+          <p class="font-bold text-lg">${carpData.species.toUpperCase()}</p>
+          <p class="text-sm text-gray-400">Time: ${carpData.timestamp}</p>
+          <p class="text-xs text-gray-500 mt-2">Ready to cast again in 5 seconds...</p>
+        </div>
+      `;
+      logContentEl.innerHTML = logHTML;
+    }
 
-        function stopAlarmSound() {
-            if (!isAudioInitialized) return;
-            Tone.Transport.stop();
-        }
-
-        // --- DOM Elements ---
-        const appContainer = document.getElementById('app-container');
-        const currentStatusEl = document.getElementById('current-status');
-        const timeToBiteEl = document.getElementById('time-to-bite');
-        const reelButton = document.getElementById('reel-button');
-        const logContentEl = document.getElementById('log-content');
-        const toggleFishingButton = document.getElementById('toggle-fishing-button');
-
-        // --- Simulation Logic ---
-        function getNextBiteTime() {
-            // NEW RANGE: 5 to 20 seconds
-            const minMs = 5000;
-            const maxMs = 20000;
-            return Math.floor(Math.random() * (maxMs - minMs + 1)) + minMs;
-        }
-
-        function updateStatus(newStatus, message) {
-            status = newStatus;
-            currentStatusEl.textContent = `STATUS: ${newStatus}`;
-            appContainer.classList.remove('alarm-flash');
-            reelButton.classList.add('hidden');
-
-            if (status !== 'ALARM') {
-                timeToBiteEl.textContent = message;
-            }
-
-            if (status === 'ALARM') {
-                appContainer.classList.add('alarm-flash');
-                reelButton.classList.remove('hidden');
-                reelButton.textContent = `Reel In! (${countdownValue}s left)`;
-            } else {
-                reelButton.classList.add('hidden');
-            }
-        }
-
-        // --- Main Fishing Control ---
-        function startFishingCycle() {
-            isFishing = true;
-            toggleFishingButton.textContent = "Stop Fishing";
-            toggleFishingButton.classList.remove('bg-yellow-500');
-            toggleFishingButton.classList.add('bg-red-600');
-
-            if (biteTimeout) clearTimeout(biteTimeout);
-            const nextBiteMs = getNextBiteTime();
-            biteTimeout = setTimeout(startBite, nextBiteMs);
-
-            timeToBiteEl.textContent = `Bait set. Waiting for the sound of a big run...`;
-            updateStatus('FISHING', timeToBiteEl.textContent);
-        }
-
-        function stopFishing() {
-            isFishing = false;
-            toggleFishingButton.textContent = "Start Fishing";
-            toggleFishingButton.classList.remove('bg-red-600');
-            toggleFishingButton.classList.add('bg-yellow-500');
-
-            if (biteTimeout) clearTimeout(biteTimeout);
-            if (catchTimer) clearInterval(catchTimer);
-
-            stopAlarmSound();
-            updateStatus('STOPPED', `Fishing stopped. Press Start Fishing to cast again.`);
-        }
-
-        window.toggleFishing = function() {
-            if (!isAudioInitialized) {
-                initAudio();
-            }
-            if (isFishing) {
-                stopFishing();
-            } else {
-                startFishingCycle();
-            }
-        }
-
-        function startBite() {
-            if (!isFishing) return;
-
-            console.log("!!! FISH ON !!!");
-            countdownValue = 15;
-            updateStatus('ALARM', `*** FISH ON! REEL IN QUICK! ***`);
-            startAlarmSound();
-
-            catchTimer = setInterval(() => {
-                countdownValue--;
-                reelButton.textContent = `REEL IN! (${countdownValue}S LEFT)`;
-
-                if (countdownValue <= 0) {
-                    clearInterval(catchTimer);
-                    catchTimer = null;
-                    stopAlarmSound();
-
-                    updateStatus('LOST', '❌ TOO SLOW! THE LINE SNAPPED AND THE FISH GOT AWAY!');
-                    if (isFishing) {
-                        setTimeout(startFishingCycle, 5000);
-                    }
-                }
-            }, 1000);
-        }
-
-        window.reelIn = function() {
-            if (status !== 'ALARM') return;
-
-            clearInterval(catchTimer);
-            catchTimer = null;
-            stopAlarmSound();
-
-            updateStatus('CAUGHT', '🎉 REELING SUCCESSFUL!');
-            const carpData = generateCarpDetails();
-            displayCarpStats(carpData);
-
-            if (isFishing) {
-                setTimeout(startFishingCycle, 5000);
-            }
-        }
-
-        function generateCarpDetails() {
-            const speciesList = ['Common Carp', 'Mirror Carp', 'Ghost Carp', 'Leather Carp', 'Fully Scaled Carp'];
-            const species = speciesList[Math.floor(Math.random() * speciesList.length)];
-
-            let weightLbs;
-            const tier = Math.random();
-
-            if (tier < 0.50) {
-                weightLbs = Math.random() * (35 - 15) + 15;
-            } else if (tier < 0.85) {
-                weightLbs = Math.random() * (50 - 35) + 35;
-            } else {
-                weightLbs = Math.random() * (70 - 50) + 50;
-            }
-
-            const roundedWeight = (Math.round(weightLbs * 10) / 10).toFixed(1);
-            return {
-                species: species,
-                weight: roundedWeight,
-                timestamp: new Date().toLocaleString()
-            };
-        }
-
-        function displayCarpStats(carpData) {
-            updateStatus('CAUGHT', `🎉 SUCCESS! You landed a ${carpData.weight}LB ${carpData.species}!`);
-            const logHTML = `
-                <div class="space-y-2 text-white">
-                    <p class="font-extrabold text-2xl text-yellow-400">${carpData.weight} LBS</p>
-                    <p class="font-bold text-lg">${carpData.species.toUpperCase()}</p>
-                    <p class="text-sm text-gray-400">Time: ${carpData.timestamp}</p>
-                    <p class="text-xs text-gray-500 mt-2">Ready to cast again in 5 seconds...</p>
-                </div>
-            `;
-            logContentEl.innerHTML = logHTML;
-        }
-
-        // --- Initialization ---
-        window.onload = function() {
-            updateStatus('STOPPED', `Ready to cast your lines! The wait could be anywhere from 5 to 20 seconds.`);
-        };
-
-        window.initAudio = initAudio;
-        window.reelIn = reelIn;
-        window.toggleFishing = toggleFishing;
-    </script>
+    // --- Initialization ---
+    window.onload = function () {
+      updateStatus('STOPPED', `Ready to cast your lines! The wait could be anywhere from 5 to 20 seconds.`);
+    };
+  </script>
 </body>
 </html>
