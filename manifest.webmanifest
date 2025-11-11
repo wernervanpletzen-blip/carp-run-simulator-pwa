@@ -1,0 +1,24 @@
+{
+  "name": "Carp Run Alarm Simulator",
+  "short_name": "Carp Run",
+  "description": "Simulate real carp fishing runs with authentic Delkim alarm sounds and random bite timing.",
+  "start_url": "/index.html",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#000000",
+  "theme_color": "#111827",
+  "id": "carp-run-alarm",
+  "icons": [
+    {
+      "src": "./assets/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "./assets/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
