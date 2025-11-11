@@ -4,7 +4,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Carp Run Alarm Simulator (Delkim Sound Version)</title>
+  <title>Carp Run Alarm Simulator (Delkim Sound Final)</title>
 
   <meta name="theme-color" content="#111827">
   <link rel="manifest" href="/manifest.json">
@@ -126,9 +126,9 @@
     let biteTimeout = null;
     let countdownValue = 0;
 
-    // --- Delkim Sound Setup ---
-    const alarmSound = new Audio('./assets/CarpRunSound.mp3');
-    alarmSound.loop = true; // Keep looping until reel in
+    // --- Real Delkim Sound Setup ---
+    const alarmSound = new Audio('./assets/CarpRunSound001.mp3');
+    alarmSound.loop = true; // keep looping while fish is on
 
     function startAlarmSound() {
       alarmSound.currentTime = 0;
