@@ -96,8 +96,8 @@
         
         // --- CUSTOM AUDIO SETUP ---
         // 1. Base64 encoded audio string provided by the user (data:audio/mp3;base64, + raw Base64 data)
-        // NOTE: This is still a placeholder string and MUST be replaced with actual audio data.
-        const ALARM_BASE64_STRING = "data:audio/mp3;base64,const ALARM_BASE64_STRING = "data:audio/mp3;base64,aW50ZXJfaW5zdGFuY2VfaXNfbXVjaF9tb3JlX2NvbXBsZXhfdGhhbl9qdXN0X3RoZV9kYXRhX3N0cmluZ19oZXJlXw==";"; 
+        // !!! IMPORTANT !!! THIS IS A PLACEHOLDER. REPLACE THE ENTIRE STRING WITH YOUR VALID BASE64 AUDIO DATA.
+        const ALARM_BASE64_STRING = "data:audio/mp3;base64,aW50ZXJfaW5zdGFuY2VfaXNfbXVjaF9tb3JlX2NvbXBsZXhfdGhhbl9qdXN0X3RoZV9kYXRhX3N0cmluZ19oZXJlXw=="; 
         
         let audioAlarm;
         let alarmInterval;
@@ -105,12 +105,19 @@
         const MAX_PLAY_ATTEMPTS = 5;
 
         const initAudio = () => {
-            // Create an Audio object from the Base64 string
-            if (ALARM_BASE64_STRING.includes("base64")) {
-                 audioAlarm = new Audio(ALARM_BASE64_STRING);
-                 console.log("Custom Audio Initialized.");
-            } else {
-                 console.error("Please provide a valid Base64 string for the alarm sound.");
+            // Use try...catch to prevent the app from crashing if the Base64 string is invalid.
+            try {
+                if (ALARM_BASE64_STRING.includes("base64") && ALARM_BASE64_STRING.length > 50) {
+                    audioAlarm = new Audio(ALARM_BASE64_STRING);
+                    console.log("Custom Audio Initialized.");
+                } else {
+                    audioAlarm = null;
+                    console.warn("Audio initialization skipped: Placeholder or no valid Base64 data provided.");
+                }
+            } catch (e) {
+                audioAlarm = null; // Ensure we don't try to use a half-created object
+                console.error("Failed to construct Audio object:", e.message);
+                console.warn("Falling back to silent mode. Please verify your Base64 audio data.");
             }
         };
 
@@ -164,8 +171,7 @@
 
         // --- Game Logic ---
 
-        // NOTE: This is temporarily set for testing the alarm sound. 
-        // Generates a random time between 10 seconds (10,000ms) and 30 seconds (30,000ms)
+        // NOTE: This is temporarily set for testing the alarm sound (10-30 seconds). 
         const generateLongGameBiteTime = () => {
             const minMs = 10 * 1000; // 10 seconds
             const maxMs = 30 * 1000; // 30 seconds
