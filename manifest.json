@@ -1,0 +1,21 @@
+{
+  "name": "Carp Run! Simulator",
+  "short_name": "Carp Run",
+  "description": "The secure Carp Run! Simulator for South African fishing adventures.",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#000000",
+  "theme_color": "#111827",
+  "icons": [
+    {
+      "src": "https://placehold.co/192x192/0E4C30/FFFFFF?text=CRR",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "https://placehold.co/512x512/0E4C30/FFFFFF?text=CRR",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
