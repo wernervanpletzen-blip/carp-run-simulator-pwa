@@ -89,8 +89,9 @@
 
     <div id="status-display" class="p-4 mb-6 text-center rounded-lg bg-gray-700">
       <p id="current-status" class="fishing-status">Stopped</p>
-      <p id="time-to-bite" class="text-sm mt-1 text-gray-400">Ready to cast your lines! The wait could be anywhere from 5
-        to 20 seconds.</p>
+      <p id="time-to-bite" class="text-sm mt-1 text-gray-400">
+        Ready to cast your lines! The wait could be anywhere from 2 to 30 minutes.
+      </p>
     </div>
 
     <div class="flex flex-col items-center space-y-4">
@@ -101,7 +102,9 @@
       </button>
 
       <div id="last-catch-log" class="w-full mt-6 text-sm">
-        <h2 class="text-xl font-bold mb-2 text-white uppercase border-b border-blue-800 pb-1">Last Catch Statistics</h2>
+        <h2 class="text-xl font-bold mb-2 text-white uppercase border-b border-blue-800 pb-1">
+          Last Catch Statistics
+        </h2>
         <div id="log-content" class="catch-stats">
           <p class="text-gray-300">No successful catches yet. Tight lines!</p>
         </div>
@@ -150,8 +153,9 @@
 
     // --- Simulation Logic ---
     function getNextBiteTime() {
-      const minMs = 5000;  // 5 seconds
-      const maxMs = 20000; // 20 seconds
+      // NEW RANGE: 2 to 30 minutes
+      const minMs = 120000;   // 2 minutes
+      const maxMs = 1800000;  // 30 minutes
       return Math.floor(Math.random() * (maxMs - minMs + 1)) + minMs;
     }
 
@@ -278,7 +282,7 @@
 
     // --- Initialization ---
     window.onload = function () {
-      updateStatus('STOPPED', `Ready to cast your lines! The wait could be anywhere from 5 to 20 seconds.`);
+      updateStatus('STOPPED', `Ready to cast your lines! The wait could be anywhere from 2 to 30 minutes.`);
     };
   </script>
 </body>
