@@ -6,8 +6,7 @@
     <title>Carp Run Alarm Simulator</title>
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Tone.js for sound generation -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.min.js"></script>
+    <!-- Tone.js is no longer needed if using custom audio -->
     <!-- Link to PWA manifest -->
     <link rel="manifest" href="./manifest.json">
     <style>
@@ -56,13 +55,12 @@
 
     <div class="container bg-gray-800 rounded-xl shadow-2xl">
 
-        <!-- 1. Logo Placeholder Area (Made Bigger: w-48 h-48) -->
+        <!-- 1. Logo Placeholder Area -->
         <div class="mb-6 text-center">
-            <!-- Ensure your logo.png is in the 'assets' folder! -->
-            <img src="./assets/logo.png" alt="Your Custom Carp Run Logo" class="mx-auto w-48 h-48 object-contain rounded-full shadow-lg p-2 bg-gray-900" onerror="this.src='https://placehold.co/192x192/1F2937/FFFFFF?text=LOGO'">
+            <img src="./assets/logo.png" alt="Your Custom Carp Run Logo" class="mx-auto w-32 h-32 object-contain rounded-full shadow-lg p-2 bg-gray-900" onerror="this.src='https://placehold.co/128x128/1F2937/FFFFFF?text=LOGO'">
         </div>
         
-        <!-- 2. Main Button Area (Moved up) -->
+        <!-- 2. Main Button Area -->
         <div class="flex flex-col space-y-4 mb-6">
             <button id="mainButton" 
                     class="btn-start text-white font-extrabold py-4 px-6 rounded-xl text-lg w-full uppercase"
@@ -71,7 +69,7 @@
             </button>
         </div>
 
-        <!-- 3. Status and Timer Display (Moved down) -->
+        <!-- 3. Status and Timer Display -->
         <div id="statusDisplay" class="fishing-status text-center text-xl font-bold p-4 mb-6 rounded-lg bg-gray-900 shadow-inner">
             <p>Ready to cast out?</p>
         </div>
@@ -95,52 +93,89 @@
         let reelTimer;
         const REEL_IN_TIME_SECONDS = 15; // User-requested reel-in time
         let biteTime = 0; // Time in ms until the next bite
+        
+        // --- CUSTOM AUDIO SETUP ---
+        // 1. Base64 encoded audio string provided by the user (data:audio/mp3;base64, + raw Base64 data)
+        // NOTE: This is still a placeholder string and MUST be replaced with actual audio data.
+        const ALARM_BASE64_STRING = "data:audio/mp3;base64,const ALARM_BASE64_STRING = "data:audio/mp3;base64,aW50ZXJfaW5zdGFuY2VfaXNfbXVjaF9tb3JlX2NvbXBsZXhfdGhhbl9qdXN0X3RoZV9kYXRhX3N0cmluZ19oZXJlXw==";"; 
+        
+        let audioAlarm;
+        let alarmInterval;
+        let playAttemptCount = 0;
+        const MAX_PLAY_ATTEMPTS = 5;
 
-        // --- Sound Generation ---
-        let alarmSynth;
-        const initAudio = async () => {
-            // Check if audio context is running (required for Tone.js)
-            if (Tone.context.state !== 'running') {
-                await Tone.start();
+        const initAudio = () => {
+            // Create an Audio object from the Base64 string
+            if (ALARM_BASE64_STRING.includes("base64")) {
+                 audioAlarm = new Audio(ALARM_BASE64_STRING);
+                 console.log("Custom Audio Initialized.");
+            } else {
+                 console.error("Please provide a valid Base64 string for the alarm sound.");
             }
-            // Create a simple alarm synth (e.g., a simple beep)
-            alarmSynth = new Tone.Synth().toDestination();
-            console.log("Audio Context Initialized.");
         };
 
         const playAlarm = () => {
-            if (alarmSynth) {
-                // Play C4 for 0.2 seconds
-                alarmSynth.triggerAttackRelease("C4", "8n");
-                // Repeat for an urgent alarm sound
-                Tone.Transport.scheduleRepeat((time) => {
-                    alarmSynth.triggerAttackRelease("C5", "16n", time, 0.5);
-                    alarmSynth.triggerAttackRelease("C4", "16n", time + 0.1, 0.5);
-                }, "4n", 0, REEL_IN_TIME_SECONDS);
-                Tone.Transport.start();
-            }
+            if (!audioAlarm) return;
+            
+            playAttemptCount = 0;
+
+            // Function to safely play the audio and handle errors
+            const safePlay = () => {
+                playAttemptCount++;
+                audioAlarm.play()
+                    .then(() => {
+                        // Playback successful, reset attempts
+                        playAttemptCount = 0;
+                    })
+                    .catch(e => {
+                        console.warn(`Audio playback failed (Attempt ${playAttemptCount}):`, e.message);
+                        
+                        // If it fails repeatedly, stop the alarm loop entirely
+                        if (playAttemptCount >= MAX_PLAY_ATTEMPTS) {
+                            console.error("Repeated audio failure. Stopping alarm loop.");
+                            stopAlarm();
+                        }
+                    });
+            };
+            
+            // 1. Play once immediately
+            safePlay();
+            
+            // 2. Set an interval to loop the alarm every second for the 15-second reel-in window
+            alarmInterval = setInterval(() => {
+                // Rewind and play again
+                audioAlarm.currentTime = 0; 
+                safePlay();
+            }, 1000); 
+
+            // Stop the looping after the reel-in time is up
+            setTimeout(stopAlarm, REEL_IN_TIME_SECONDS * 1000);
         };
 
         const stopAlarm = () => {
-            if (alarmSynth) {
-                Tone.Transport.stop();
-                Tone.Transport.cancel();
+             if (audioAlarm) {
+                audioAlarm.pause();
+                audioAlarm.currentTime = 0;
+            }
+            if (alarmInterval) {
+                clearInterval(alarmInterval);
             }
         };
 
         // --- Game Logic ---
 
-        // Generates a random time between 1 minute (60,000ms) and 2 hours (7,200,000ms)
+        // NOTE: This is temporarily set for testing the alarm sound. 
+        // Generates a random time between 10 seconds (10,000ms) and 30 seconds (30,000ms)
         const generateLongGameBiteTime = () => {
-            const minMs = 60 * 1000; // 1 minute
-            const maxMs = 120 * 60 * 1000; // 2 hours
+            const minMs = 10 * 1000; // 10 seconds
+            const maxMs = 30 * 1000; // 30 seconds
             return Math.floor(Math.random() * (maxMs - minMs + 1)) + minMs;
         };
 
         const startFishing = async () => {
             if (isFishing) return;
 
-            await initAudio(); // Initialize audio on user interaction
+            initAudio(); // Initialize audio object on user interaction
 
             isFishing = true;
             CATCH_STATS.classList.add('hidden');
@@ -153,7 +188,7 @@
             STATUS_DISPLAY.innerHTML = '<p class="text-yellow-400">Casting out... Tight lines!</p>';
 
             biteTime = generateLongGameBiteTime();
-            console.log(`Next bite scheduled in: ${Math.round(biteTime / 60000)} minutes`);
+            console.log(`Next bite scheduled in: ${Math.round(biteTime / 1000)} seconds`);
 
             biteTimer = setTimeout(startBite, biteTime);
         };
@@ -181,11 +216,16 @@
                 }
             }, 1000);
 
+            // Store the interval ID on the button so handleReelIn can stop it
+            MAIN_BUTTON.setAttribute('data-countdown-id', countdownInterval);
+
             // Set the overall reel-in timer to fail after 15 seconds
             reelTimer = setTimeout(() => {
-                clearInterval(countdownInterval);
-                // If handleReelIn wasn't called by a successful click, it will be called by the interval at 0s. 
-                // We keep this here as a safety fallback, but the interval handles the logic.
+                const id = MAIN_BUTTON.getAttribute('data-countdown-id');
+                if (id) {
+                    clearInterval(parseInt(id));
+                    MAIN_BUTTON.removeAttribute('data-countdown-id');
+                }
             }, REEL_IN_TIME_SECONDS * 1000 + 100);
         };
 
@@ -206,11 +246,23 @@
         };
 
         const handleReelIn = (success) => {
-            if (!isFishing) return;
-            isFishing = false;
-
-            stopAlarm();
-            clearTimeout(reelTimer);
+            if (!isFishing && success) {
+                return; 
+            }
+            if (!isFishing && !success) {
+                // Failure already happened
+            } else if (isFishing) {
+                // Normal flow: Stop fishing and clean up timers
+                isFishing = false;
+                stopAlarm();
+                clearTimeout(reelTimer);
+                
+                const id = MAIN_BUTTON.getAttribute('data-countdown-id');
+                if (id) {
+                    clearInterval(parseInt(id));
+                    MAIN_BUTTON.removeAttribute('data-countdown-id');
+                }
+            }
             
             MAIN_BUTTON.onclick = startFishing; // Reset button action
             MAIN_BUTTON.classList.remove('btn-reel');
@@ -244,7 +296,7 @@
             const newCatchDiv = document.createElement('div');
             newCatchDiv.classList.add('p-3', 'border-b', 'border-gray-700', 'last:border-b-0');
             newCatchDiv.innerHTML = statsHtml;
-            CATCH_STATS.appendChild(newCatchDiv);
+            CATCH_STATS.prepend(newCatchDiv); // Prepend to show latest catch at the top
         };
 
         // --- PWA Service Worker Registration ---
