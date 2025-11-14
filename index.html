@@ -12,20 +12,23 @@
   <script src="https://cdn.tailwindcss.com"></script>
 
   <style>
-    body { background:#000; font-family:Inter,sans-serif; margin:0; padding:0; }
-
+    body {
+      background:#000;
+      font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+      margin:0;
+      padding:0;
+    }
     #startup-overlay {
-      position:fixed; inset:0;
+      position:fixed;
+      inset:0;
       background:rgba(0,0,0,0.9);
-      display:flex; justify-content:center; align-items:center;
+      display:flex;              /* visible by default */
+      justify-content:center;
+      align-items:center;
       z-index:999;
     }
-
     .tab-active { background:#3b82f6; color:#fff; }
     .tab-inactive { background:#1f2937; color:#ccc; }
-
-    .alarm-flash { animation: flash .3s infinite alternate; background:#ff3333!important; }
-    @keyframes flash { from{box-shadow:0 0 8px red;} to{box-shadow:0 0 25px red;} }
   </style>
 </head>
 
@@ -37,6 +40,9 @@
   <div id="startup-overlay">
     <div class="bg-gray-800 p-6 rounded-xl w-full max-w-sm border border-gray-700 text-center">
       <h1 class="text-2xl font-bold mb-4">Create Profile</h1>
+      <p class="text-sm text-gray-300 mb-3">
+        Choose a username to start fishing. Your stats will be saved online.
+      </p>
 
       <input id="profile-name-input"
              placeholder="Enter username"
@@ -44,13 +50,12 @@
 
       <button id="save-profile-btn"
               class="w-full py-2 bg-blue-600 font-bold rounded hover:bg-blue-700 mb-3">
-        Save Profile
+        Save Profile & Start
       </button>
 
-      <!-- CONTINUE BUTTON -->
       <button id="continue-btn"
-              class="w-full py-2 bg-green-600 font-bold rounded hover:bg-green-700">
-        Continue
+              class="w-full py-2 bg-gray-600 font-bold rounded hover:bg-gray-500 text-sm">
+        Continue as Guest (no online stats)
       </button>
     </div>
   </div>
@@ -74,8 +79,9 @@
   <!-- FISHING SCREEN -->
   <div id="screen-fishing">
     <button id="toggle-fishing-button"
-            class="w-full py-2 bg-yellow-500 text-black font-bold rounded mb-4"
-            onclick="toggleFishing()">Start Fishing</button>
+            class="w-full py-2 bg-yellow-500 text-black font-bold rounded mb-4">
+      Start Fishing
+    </button>
 
     <div class="bg-gray-700 p-3 rounded text-center mb-4">
       <p id="current-status" class="text-green-400 font-bold">Stopped</p>
@@ -85,8 +91,9 @@
     </div>
 
     <button id="reel-button"
-            class="hidden w-full py-3 bg-green-500 text-black font-bold rounded mb-4"
-            onclick="reelIn()">Reel In!</button>
+            class="hidden w-full py-3 bg-green-500 text-black font-bold rounded mb-4">
+      Reel In!
+    </button>
 
     <div>
       <h2 class="font-bold mb-2 border-b border-blue-800">Last Catch</h2>
@@ -103,215 +110,398 @@
     <p>Biggest common: <span id="stat-biggest-common">0</span> kg</p>
     <p>Biggest mirror: <span id="stat-biggest-mirror">0</span> kg</p>
     <p>Total weight: <span id="stat-total-weight">0</span> kg</p>
+    <p class="text-xs text-gray-400 mt-3">
+      Stats are stored in the cloud for this device. Future: global leaderboard.
+    </p>
   </div>
 
   <!-- LEADERBOARD SCREEN -->
   <div id="screen-leaderboard" class="hidden">
     <h2 class="text-xl font-bold mb-3">Leaderboard</h2>
-    <p class="text-sm text-gray-400">Online leaderboard coming soon.</p>
+    <p class="text-sm text-gray-400">
+      Coming soon: global top catches and total weight rankings.
+    </p>
   </div>
 
 </div>
 
+<!-- Simple service worker registration (optional but nice to keep) -->
 <script>
-/* ===========================
-   UNIVERSAL STARTUP FIX 🟢
-=========================== */
-
-let firstLoad = true;  
-let profile = null;
-
-/* Always show startup screen ONCE per load */
-function showStartup() {
-  if (firstLoad) {
-    document.getElementById("startup-overlay").classList.remove("hidden");
-    firstLoad = false;
-  }
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('./service-worker.js').catch(console.error);
+  });
 }
+</script>
 
-/* Load profile from storage (if it works) */
-function loadProfile() {
-  try {
-    const raw = localStorage.getItem("carpRunProfile");
-    if (!raw) return null;
-    return JSON.parse(raw);
-  } catch {
-    return null;
-  }
-}
+<!-- MAIN APP + FIREBASE (MODULE) -->
+<script type="module">
+  // ==========================
+  // Firebase imports
+  // ==========================
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-app.js";
+  import {
+    getFirestore,
+    doc,
+    getDoc,
+    setDoc,
+    serverTimestamp
+  } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-firestore.js";
 
-profile = loadProfile();
-
-/* Save profile safely */
-function saveProfile() {
-  try {
-    localStorage.setItem("carpRunProfile", JSON.stringify(profile));
-  } catch {
-    /* storage failed, ignore */
-  }
-}
-
-/* Update UI stats */
-function updateProfileUI() {
-  if (!profile) return;
-
-  document.getElementById("header-username").textContent = profile.username;
-  document.getElementById("stat-biggest-carp").textContent = profile.stats.biggestCarpKg.toFixed(1);
-  document.getElementById("stat-biggest-common").textContent = profile.stats.biggestCommonKg.toFixed(1);
-  document.getElementById("stat-biggest-mirror").textContent = profile.stats.biggestMirrorKg.toFixed(1);
-  document.getElementById("stat-total-weight").textContent = profile.stats.totalWeightKg.toFixed(1);
-}
-
-/* SAVE PROFILE BUTTON */
-document.getElementById("save-profile-btn").onclick = () => {
-  let name = document.getElementById("profile-name-input").value.trim();
-  if (!name) { alert("Enter a username."); return; }
-
-  profile = {
-    username: name,
-    stats: {
-      biggestCarpKg: 0,
-      biggestCommonKg: 0,
-      biggestMirrorKg: 0,
-      totalWeightKg: 0
-    }
+  // ==========================
+  // Firebase config (yours)
+  // ==========================
+  const firebaseConfig = {
+    apiKey: "AIzaSyASz_xXcEF5pV6CAZR9YfPMUxk_8kS_VTU",
+    authDomain: "carp-simulator-app-394af.firebaseapp.com",
+    projectId: "carp-simulator-app-394af",
+    storageBucket: "carp-simulator-app-394af.firebasestorage.app",
+    messagingSenderId: "761509507210",
+    appId: "1:761509507210:web:1c5bb0d8af518fab3ebd73"
   };
 
-  saveProfile();
-  updateProfileUI();
+  const app = initializeApp(firebaseConfig);
+  const db = getFirestore(app);
 
-  document.getElementById("startup-overlay").classList.add("hidden");
-};
+  // ==========================
+  // DOM references
+  // ==========================
+  const startupOverlay   = document.getElementById("startup-overlay");
+  const nameInput        = document.getElementById("profile-name-input");
+  const saveProfileBtn   = document.getElementById("save-profile-btn");
+  const continueBtn      = document.getElementById("continue-btn");
 
-/* CONTINUE BUTTON – bypass overlay */
-document.getElementById("continue-btn").onclick = () => {
-  document.getElementById("startup-overlay").classList.add("hidden");
-};
+  const headerUsername   = document.getElementById("header-username");
 
-/* ===========================
-   FISHING SYSTEM
-=========================== */
-let isFishing = false;
-let countdownValue = 0;
-let biteTimeout = null;
-let catchTimer = null;
+  const statBiggestCarp   = document.getElementById("stat-biggest-carp");
+  const statBiggestCommon = document.getElementById("stat-biggest-common");
+  const statBiggestMirror = document.getElementById("stat-biggest-mirror");
+  const statTotalWeight   = document.getElementById("stat-total-weight");
 
-const alarmSound = new Audio("./assets/CarpRunSound001.mp3");
-alarmSound.loop = true;
+  const toggleFishingButton = document.getElementById("toggle-fishing-button");
+  const currentStatusEl     = document.getElementById("current-status");
+  const timeToBiteEl        = document.getElementById("time-to-bite");
+  const reelButton          = document.getElementById("reel-button");
+  const logContentEl        = document.getElementById("log-content");
 
-function startAlarm(){ alarmSound.currentTime=0; alarmSound.play().catch(()=>{}); }
-function stopAlarm(){ alarmSound.pause(); alarmSound.currentTime=0; }
+  const tabFishing     = document.getElementById("tab-fishing");
+  const tabProfile     = document.getElementById("tab-profile");
+  const tabLeaderboard = document.getElementById("tab-leaderboard");
 
-function toggleFishing() {
-  if (isFishing) return stopFishing();
-  startFishing();
-}
+  const screenFishing     = document.getElementById("screen-fishing");
+  const screenProfile     = document.getElementById("screen-profile");
+  const screenLeaderboard = document.getElementById("screen-leaderboard");
 
-function startFishing() {
-  isFishing = true;
-  document.getElementById("toggle-fishing-button").textContent = "Stop Fishing";
+  // ==========================
+  // Profile + ID handling
+  // ==========================
+  let profile = null;
+  let profileId = null;
 
-  /* Bite range: 5–60 seconds */
-  biteTimeout = setTimeout(startBite, Math.random()*55000 + 5000);
-}
+  function createDefaultProfile(username = "Guest") {
+    return {
+      username,
+      stats: {
+        biggestCarpKg: 0,
+        biggestCommonKg: 0,
+        biggestMirrorKg: 0,
+        totalWeightKg: 0
+      },
+      createdAt: new Date().toISOString()
+    };
+  }
 
-function stopFishing() {
-  isFishing = false;
-  document.getElementById("toggle-fishing-button").textContent = "Start Fishing";
-  clearTimeout(biteTimeout);
-  clearInterval(catchTimer);
-  stopAlarm();
-}
-
-function startBite() {
-  if (!isFishing) return;
-
-  countdownValue = 15;
-  startAlarm();
-  document.getElementById("reel-button").classList.remove("hidden");
-
-  catchTimer = setInterval(() => {
-    countdownValue--;
-    document.getElementById("reel-button").textContent = `Reel In! (${countdownValue}s)`;
-
-    if (countdownValue <= 0) {
-      clearInterval(catchTimer);
-      document.getElementById("reel-button").classList.add("hidden");
-      stopAlarm();
-      if (isFishing) setTimeout(startFishing, 3000);
+  function getOrCreateProfileId() {
+    try {
+      let id = localStorage.getItem("carpProfileId");
+      if (!id) {
+        id = (self.crypto?.randomUUID?.() || ("id-" + Math.random().toString(36).slice(2)));
+        localStorage.setItem("carpProfileId", id);
+      }
+      return id;
+    } catch (e) {
+      console.warn("localStorage issue, using in-memory ID only:", e);
+      if (!window.__tempProfileId) {
+        window.__tempProfileId = "id-" + Math.random().toString(36).slice(2);
+      }
+      return window.__tempProfileId;
     }
-  }, 1000);
-}
+  }
 
-function reelIn() {
-  clearInterval(catchTimer);
-  stopAlarm();
-  document.getElementById("reel-button").classList.add("hidden");
+  function hideStartupOverlay() {
+    startupOverlay.style.display = "none";
+  }
 
-  const fish = generateFish();
-  applyStats(fish);
+  function showStartupOverlay() {
+    startupOverlay.style.display = "flex";
+  }
 
-  document.getElementById("log-content").innerHTML = `
-    <p class="text-yellow-400 text-xl font-bold">${fish.weightKg} kg</p>
-    <p>${fish.species}</p>
-    <p class="text-gray-400 text-sm">${fish.time}</p>
-  `;
+  function updateProfileUI() {
+    if (!profile) return;
+    headerUsername.textContent = profile.username;
 
-  if (isFishing) setTimeout(startFishing, 3000);
-}
+    statBiggestCarp.textContent   = profile.stats.biggestCarpKg.toFixed(1);
+    statBiggestCommon.textContent = profile.stats.biggestCommonKg.toFixed(1);
+    statBiggestMirror.textContent = profile.stats.biggestMirrorKg.toFixed(1);
+    statTotalWeight.textContent   = profile.stats.totalWeightKg.toFixed(1);
+  }
 
-function generateFish() {
-  const speciesList = ["Common Carp","Mirror Carp","Ghost Carp","Koi Carp","Catfish"];
-  const species = speciesList[Math.floor(Math.random()*speciesList.length)];
-  const weightKg = parseFloat((Math.random()*51+4).toFixed(1));
-  return {species, weightKg, time:new Date().toLocaleString()};
-}
+  async function loadProfileFromCloud() {
+    profileId = getOrCreateProfileId();
 
-function applyStats(f){
-  if (!profile) return;
+    try {
+      const ref = doc(db, "players", profileId);
+      const snap = await getDoc(ref);
 
-  const w=f.weightKg;
-  profile.stats.totalWeightKg += w;
+      if (snap.exists()) {
+        profile = snap.data();
+        // Ensure stats object exists
+        if (!profile.stats) {
+          profile.stats = createDefaultProfile(profile.username).stats;
+        }
+        updateProfileUI();
+        hideStartupOverlay();
+      } else {
+        // No profile yet: show overlay
+        profile = null;
+        showStartupOverlay();
+      }
+    } catch (e) {
+      console.error("Failed to load profile from Firestore:", e);
+      // Fallback to guest profile but still show overlay so user can set a name
+      profile = createDefaultProfile("Guest");
+      updateProfileUI();
+      showStartupOverlay();
+    }
+  }
 
-  if(f.species !== "Catfish" && w > profile.stats.biggestCarpKg)
-    profile.stats.biggestCarpKg = w;
+  async function saveProfileToCloud() {
+    if (!profileId || !profile) return;
 
-  if(f.species==="Common Carp" && w > profile.stats.biggestCommonKg)
-    profile.stats.biggestCommonKg = w;
+    try {
+      const ref = doc(db, "players", profileId);
+      await setDoc(ref, {
+        ...profile,
+        updatedAt: serverTimestamp()
+      });
+    } catch (e) {
+      console.error("Failed to save profile to Firestore:", e);
+    }
+  }
 
-  if(f.species==="Mirror Carp" && w > profile.stats.biggestMirrorKg)
-    profile.stats.biggestMirrorKg = w;
+  // ==========================
+  // PROFILE BUTTON HANDLERS
+  // ==========================
+  saveProfileBtn.addEventListener("click", async () => {
+    const name = (nameInput.value || "").trim();
+    if (!name) {
+      alert("Please enter a username.");
+      return;
+    }
 
-  saveProfile();
-  updateProfileUI();
-}
+    if (!profile) {
+      profile = createDefaultProfile(name);
+    } else {
+      profile.username = name;
+    }
 
-/* ===========================
-   TABS
-=========================== */
-document.getElementById("tab-fishing").onclick = ()=>showTab("fishing");
-document.getElementById("tab-profile").onclick = ()=>showTab("profile");
-document.getElementById("tab-leaderboard").onclick = ()=>showTab("leaderboard");
-
-function showTab(tab){
-  document.querySelectorAll("[id^=screen]").forEach(e=>e.classList.add("hidden"));
-  document.getElementById("screen-"+tab).classList.remove("hidden");
-
-  document.querySelectorAll("[id^=tab]").forEach(e=>{
-    e.classList.remove("tab-active");
-    e.classList.add("tab-inactive");
+    updateProfileUI();
+    hideStartupOverlay();
+    saveProfileToCloud(); // fire and forget
   });
 
-  document.getElementById("tab-"+tab).classList.add("tab-active");
-}
+  continueBtn.addEventListener("click", () => {
+    // If no profile yet, just use Guest locally
+    if (!profile) {
+      profile = createDefaultProfile("Guest");
+      updateProfileUI();
+    }
+    hideStartupOverlay();
+  });
 
-/* ===========================
-   INIT
-=========================== */
-window.onload = () => {
-  if (profile) updateProfileUI();
-  showStartup();
-};
+  // ==========================
+  // FISHING SYSTEM
+  // ==========================
+  let isFishing = false;
+  let countdownValue = 0;
+  let biteTimeout = null;
+  let catchTimer = null;
+
+  const alarmSound = new Audio("./assets/CarpRunSound001.mp3");
+  alarmSound.loop = true;
+
+  function startAlarm(){
+    alarmSound.currentTime = 0;
+    alarmSound.play().catch(err => console.warn("Alarm play blocked:", err));
+  }
+
+  function stopAlarm(){
+    alarmSound.pause();
+    alarmSound.currentTime = 0;
+  }
+
+  function setStatus(text) {
+    currentStatusEl.textContent = text;
+  }
+
+  function toggleFishing() {
+    if (isFishing) {
+      stopFishing();
+    } else {
+      startFishing();
+    }
+  }
+
+  function startFishing() {
+    isFishing = true;
+    toggleFishingButton.textContent = "Stop Fishing";
+    setStatus("Fishing...");
+    timeToBiteEl.textContent = "Waiting for the next run...";
+
+    // Bite between 5 and 60 seconds
+    const waitMs = Math.floor(Math.random() * (60000 - 5000 + 1)) + 5000;
+    biteTimeout = setTimeout(startBite, waitMs);
+  }
+
+  function stopFishing() {
+    isFishing = false;
+    toggleFishingButton.textContent = "Start Fishing";
+    setStatus("Stopped");
+    timeToBiteEl.textContent = "Press Start Fishing to cast again.";
+    clearTimeout(biteTimeout);
+    clearInterval(catchTimer);
+    stopAlarm();
+    reelButton.classList.add("hidden");
+  }
+
+  function startBite() {
+    if (!isFishing) return;
+
+    countdownValue = 15;
+    setStatus("RUN! RUN! RUN!");
+    timeToBiteEl.textContent = "Fish on! Reel in before it gets away!";
+    reelButton.textContent = `Reel In! (${countdownValue}s)`;
+    reelButton.classList.remove("hidden");
+    startAlarm();
+
+    catchTimer = setInterval(() => {
+      countdownValue--;
+      reelButton.textContent = `Reel In! (${countdownValue}s)`;
+
+      if (countdownValue <= 0) {
+        clearInterval(catchTimer);
+        reelButton.classList.add("hidden");
+        stopAlarm();
+        setStatus("Missed run");
+        timeToBiteEl.textContent = "Too slow! The fish got away.";
+        if (isFishing) {
+          setTimeout(startFishing, 3000);
+        }
+      }
+    }, 1000);
+  }
+
+  function generateFish() {
+    const speciesList = ["Common Carp", "Mirror Carp", "Ghost Carp", "Koi Carp", "Catfish"];
+    const species = speciesList[Math.floor(Math.random() * speciesList.length)];
+    const weightKg = parseFloat((Math.random() * (55 - 4) + 4).toFixed(1)); // 4–55kg
+    return {
+      species,
+      weightKg,
+      time: new Date().toLocaleString()
+    };
+  }
+
+  function applyStats(fish) {
+    if (!profile) return; // if guest without saving, skip cloud stats
+
+    const w = fish.weightKg;
+    profile.stats.totalWeightKg += w;
+
+    if (fish.species !== "Catfish" && w > profile.stats.biggestCarpKg) {
+      profile.stats.biggestCarpKg = w;
+    }
+    if (fish.species === "Common Carp" && w > profile.stats.biggestCommonKg) {
+      profile.stats.biggestCommonKg = w;
+    }
+    if (fish.species === "Mirror Carp" && w > profile.stats.biggestMirrorKg) {
+      profile.stats.biggestMirrorKg = w;
+    }
+
+    updateProfileUI();
+    saveProfileToCloud();
+  }
+
+  function displayCatch(fish) {
+    logContentEl.innerHTML = `
+      <p class="text-yellow-400 text-xl font-bold">${fish.weightKg} kg</p>
+      <p class="font-bold">${fish.species}</p>
+      <p class="text-gray-400 text-sm">${fish.time}</p>
+    `;
+  }
+
+  function reelIn() {
+    clearInterval(catchTimer);
+    stopAlarm();
+    reelButton.classList.add("hidden");
+
+    const fish = generateFish();
+    setStatus("Fish landed!");
+    timeToBiteEl.textContent = "Nice one! Preparing to recast...";
+
+    applyStats(fish);
+    displayCatch(fish);
+
+    if (isFishing) {
+      setTimeout(startFishing, 3000);
+    }
+  }
+
+  // ==========================
+  // TABS
+  // ==========================
+  function showTab(tab) {
+    screenFishing.classList.add("hidden");
+    screenProfile.classList.add("hidden");
+    screenLeaderboard.classList.add("hidden");
+
+    tabFishing.classList.remove("tab-active");
+    tabProfile.classList.remove("tab-active");
+    tabLeaderboard.classList.remove("tab-active");
+
+    tabFishing.classList.add("tab-inactive");
+    tabProfile.classList.add("tab-inactive");
+    tabLeaderboard.classList.add("tab-inactive");
+
+    if (tab === "fishing") {
+      screenFishing.classList.remove("hidden");
+      tabFishing.classList.add("tab-active");
+    } else if (tab === "profile") {
+      screenProfile.classList.remove("hidden");
+      tabProfile.classList.add("tab-active");
+    } else if (tab === "leaderboard") {
+      screenLeaderboard.classList.remove("hidden");
+      tabLeaderboard.classList.add("tab-active");
+    }
+  }
+
+  tabFishing.addEventListener("click", () => showTab("fishing"));
+  tabProfile.addEventListener("click", () => showTab("profile"));
+  tabLeaderboard.addEventListener("click", () => showTab("leaderboard"));
+
+  // ==========================
+  // BUTTON EVENTS
+  // ==========================
+  toggleFishingButton.addEventListener("click", toggleFishing);
+  reelButton.addEventListener("click", reelIn);
+
+  // ==========================
+  // INIT
+  // ==========================
+  window.addEventListener("load", () => {
+    // Try cloud profile; overlay stays visible until this finishes
+    loadProfileFromCloud();
+  });
 </script>
 
 </body>
