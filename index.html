@@ -34,7 +34,7 @@
 <div id="app-container" class="max-w-lg w-full bg-gray-900 p-4 rounded-xl border border-gray-700">
 
   <!-- STARTUP PROFILE SCREEN -->
-  <div id="startup-overlay" class="hidden">
+  <div id="startup-overlay">
     <div class="bg-gray-800 p-6 rounded-xl w-full max-w-sm border border-gray-700 text-center">
       <h1 class="text-2xl font-bold mb-4">Create Profile</h1>
 
@@ -47,7 +47,7 @@
         Save Profile
       </button>
 
-      <!-- NEW: CONTINUE BUTTON -->
+      <!-- CONTINUE BUTTON -->
       <button id="continue-btn"
               class="w-full py-2 bg-green-600 font-bold rounded hover:bg-green-700">
         Continue
@@ -114,17 +114,47 @@
 </div>
 
 <script>
-/* STORAGE: load profile */
-function loadProfile() {
-  const raw = localStorage.getItem("carpRunProfile");
-  if (!raw) return null;
-  return JSON.parse(raw);
+/* ===========================
+   UNIVERSAL STARTUP FIX 🟢
+=========================== */
+
+let firstLoad = true;  
+let profile = null;
+
+/* Always show startup screen ONCE per load */
+function showStartup() {
+  if (firstLoad) {
+    document.getElementById("startup-overlay").classList.remove("hidden");
+    firstLoad = false;
+  }
 }
 
-let profile = loadProfile();
+/* Load profile from storage (if it works) */
+function loadProfile() {
+  try {
+    const raw = localStorage.getItem("carpRunProfile");
+    if (!raw) return null;
+    return JSON.parse(raw);
+  } catch {
+    return null;
+  }
+}
+
+profile = loadProfile();
+
+/* Save profile safely */
+function saveProfile() {
+  try {
+    localStorage.setItem("carpRunProfile", JSON.stringify(profile));
+  } catch {
+    /* storage failed, ignore */
+  }
+}
 
 /* Update UI stats */
 function updateProfileUI() {
+  if (!profile) return;
+
   document.getElementById("header-username").textContent = profile.username;
   document.getElementById("stat-biggest-carp").textContent = profile.stats.biggestCarpKg.toFixed(1);
   document.getElementById("stat-biggest-common").textContent = profile.stats.biggestCommonKg.toFixed(1);
@@ -132,19 +162,7 @@ function updateProfileUI() {
   document.getElementById("stat-total-weight").textContent = profile.stats.totalWeightKg.toFixed(1);
 }
 
-/* Save profile */
-function saveProfile() {
-  localStorage.setItem("carpRunProfile", JSON.stringify(profile));
-}
-
-/* Show startup screen IF needed */
-function showStartup() {
-  if (!profile) {
-    document.getElementById("startup-overlay").classList.remove("hidden");
-  }
-}
-
-/* Save profile button */
+/* SAVE PROFILE BUTTON */
 document.getElementById("save-profile-btn").onclick = () => {
   let name = document.getElementById("profile-name-input").value.trim();
   if (!name) { alert("Enter a username."); return; }
@@ -165,12 +183,14 @@ document.getElementById("save-profile-btn").onclick = () => {
   document.getElementById("startup-overlay").classList.add("hidden");
 };
 
-/* CONTINUE button = bypass overlay */
+/* CONTINUE BUTTON – bypass overlay */
 document.getElementById("continue-btn").onclick = () => {
   document.getElementById("startup-overlay").classList.add("hidden");
 };
 
-/* FISHING SYSTEM */
+/* ===========================
+   FISHING SYSTEM
+=========================== */
 let isFishing = false;
 let countdownValue = 0;
 let biteTimeout = null;
@@ -190,6 +210,8 @@ function toggleFishing() {
 function startFishing() {
   isFishing = true;
   document.getElementById("toggle-fishing-button").textContent = "Stop Fishing";
+
+  /* Bite range: 5–60 seconds */
   biteTimeout = setTimeout(startBite, Math.random()*55000 + 5000);
 }
 
@@ -246,6 +268,8 @@ function generateFish() {
 }
 
 function applyStats(f){
+  if (!profile) return;
+
   const w=f.weightKg;
   profile.stats.totalWeightKg += w;
 
@@ -262,7 +286,9 @@ function applyStats(f){
   updateProfileUI();
 }
 
-/* TABS */
+/* ===========================
+   TABS
+=========================== */
 document.getElementById("tab-fishing").onclick = ()=>showTab("fishing");
 document.getElementById("tab-profile").onclick = ()=>showTab("profile");
 document.getElementById("tab-leaderboard").onclick = ()=>showTab("leaderboard");
@@ -279,7 +305,9 @@ function showTab(tab){
   document.getElementById("tab-"+tab).classList.add("tab-active");
 }
 
-/* INIT */
+/* ===========================
+   INIT
+=========================== */
 window.onload = () => {
   if (profile) updateProfileUI();
   showStartup();
