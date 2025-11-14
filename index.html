@@ -22,7 +22,7 @@
       position:fixed;
       inset:0;
       background:rgba(0,0,0,0.9);
-      display:flex;              /* visible by default on first load */
+      display:flex;
       justify-content:center;
       align-items:center;
       z-index:999;
@@ -39,6 +39,11 @@
   <!-- STARTUP PROFILE SCREEN -->
   <div id="startup-overlay">
     <div class="bg-gray-800 p-6 rounded-xl w-full max-w-sm border border-gray-700 text-center">
+
+      <!-- YOUR LOGO HERE -->
+      <img src="./assets/logo.png"
+           class="w-28 h-28 mx-auto mb-4 rounded-lg object-contain border border-gray-600 shadow-xl" />
+
       <h1 class="text-2xl font-bold mb-2">Create Profile</h1>
       <p class="text-sm text-gray-300 mb-3">
         Choose a username to start fishing. Your stats will be saved online.
@@ -66,7 +71,10 @@
       <p class="text-xs text-gray-300">Logged in as</p>
       <p id="header-username" class="text-lg font-bold">Guest</p>
     </div>
-    <div class="w-10 h-10 bg-blue-600 rounded-full flex items-center justify-center text-xl">🎣</div>
+
+    <!-- HEADER LOGO -->
+    <img src="./assets/logo.png"
+         class="w-12 h-12 rounded-lg object-contain border border-gray-600 shadow-md" />
   </div>
 
   <!-- TABS -->
@@ -122,7 +130,6 @@
       Compare your catches with anglers around the world.
     </p>
 
-    <!-- Toggle -->
     <div class="flex gap-2 mb-3">
       <button id="btn-leaderboard-biggest"
               class="flex-1 py-2 rounded text-sm font-bold bg-blue-600 text-white">
@@ -141,7 +148,7 @@
 
 </div>
 
-<!-- Simple service worker registration (optional) -->
+<!-- SERVICE WORKER REGISTRATION -->
 <script>
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
@@ -152,9 +159,6 @@ if ('serviceWorker' in navigator) {
 
 <!-- MAIN APP + FIREBASE -->
 <script type="module">
-  // ==========================
-  // Firebase imports
-  // ==========================
   import { initializeApp } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-app.js";
   import {
     getFirestore,
@@ -169,9 +173,6 @@ if ('serviceWorker' in navigator) {
     limit
   } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-firestore.js";
 
-  // ==========================
-  // Firebase config (yours)
-  // ==========================
   const firebaseConfig = {
     apiKey: "AIzaSyASz_xXcEF5pV6CAZR9YfPMUxk_8kS_VTU",
     authDomain: "carp-simulator-app-394af.firebaseapp.com",
@@ -184,9 +185,6 @@ if ('serviceWorker' in navigator) {
   const app = initializeApp(firebaseConfig);
   const db = getFirestore(app);
 
-  // ==========================
-  // DOM references
-  // ==========================
   const startupOverlay   = document.getElementById("startup-overlay");
   const nameInput        = document.getElementById("profile-name-input");
   const saveProfileBtn   = document.getElementById("save-profile-btn");
@@ -217,9 +215,6 @@ if ('serviceWorker' in navigator) {
   const btnLeaderboardTotal   = document.getElementById("btn-leaderboard-total");
   const leaderboardList       = document.getElementById("leaderboard-list");
 
-  // ==========================
-  // Profile + ID handling
-  // ==========================
   let profile = null;
   let profileId = null;
 
@@ -245,7 +240,6 @@ if ('serviceWorker' in navigator) {
       }
       return id;
     } catch (e) {
-      console.warn("localStorage issue, using in-memory ID only:", e);
       if (!window.__tempProfileId) {
         window.__tempProfileId = "id-" + Math.random().toString(36).slice(2);
       }
@@ -290,7 +284,6 @@ if ('serviceWorker' in navigator) {
         showStartupOverlay();
       }
     } catch (e) {
-      console.error("Failed to load profile from Firestore:", e);
       profile = createDefaultProfile("Guest");
       updateProfileUI();
       showStartupOverlay();
@@ -301,19 +294,13 @@ if ('serviceWorker' in navigator) {
     if (!profileId || !profile) return;
 
     try {
-      const ref = doc(db, "players", profileId);
-      await setDoc(ref, {
+      await setDoc(doc(db, "players", profileId), {
         ...profile,
         updatedAt: serverTimestamp()
       });
-    } catch (e) {
-      console.error("Failed to save profile to Firestore:", e);
-    }
+    } catch (e) {}
   }
 
-  // ==========================
-  // PROFILE BUTTON HANDLERS
-  // ==========================
   saveProfileBtn.addEventListener("click", async () => {
     const name = (nameInput.value || "").trim();
     if (!name) {
@@ -329,7 +316,7 @@ if ('serviceWorker' in navigator) {
 
     updateProfileUI();
     hideStartupOverlay();
-    saveProfileToCloud(); // fire & forget
+    saveProfileToCloud();
   });
 
   continueBtn.addEventListener("click", () => {
@@ -340,9 +327,6 @@ if ('serviceWorker' in navigator) {
     hideStartupOverlay();
   });
 
-  // ==========================
-  // FISHING SYSTEM
-  // ==========================
   let isFishing = false;
   let countdownValue = 0;
   let biteTimeout = null;
@@ -353,7 +337,7 @@ if ('serviceWorker' in navigator) {
 
   function startAlarm(){
     alarmSound.currentTime = 0;
-    alarmSound.play().catch(err => console.warn("Alarm play blocked:", err));
+    alarmSound.play().catch(() => {});
   }
 
   function stopAlarm(){
@@ -366,11 +350,8 @@ if ('serviceWorker' in navigator) {
   }
 
   function toggleFishing() {
-    if (isFishing) {
-      stopFishing();
-    } else {
-      startFishing();
-    }
+    if (isFishing) stopFishing();
+    else startFishing();
   }
 
   function startFishing() {
@@ -379,8 +360,7 @@ if ('serviceWorker' in navigator) {
     setStatus("Fishing...");
     timeToBiteEl.textContent = "Waiting for the next run...";
 
-    // Bite between 5 and 60 seconds
-    const waitMs = Math.floor(Math.random() * (60000 - 5000 + 1)) + 5000;
+    const waitMs = Math.floor(Math.random() * (60000 - 5000)) + 5000;
     biteTimeout = setTimeout(startBite, waitMs);
   }
 
@@ -415,9 +395,7 @@ if ('serviceWorker' in navigator) {
         stopAlarm();
         setStatus("Missed run");
         timeToBiteEl.textContent = "Too slow! The fish got away.";
-        if (isFishing) {
-          setTimeout(startFishing, 3000);
-        }
+        if (isFishing) setTimeout(startFishing, 3000);
       }
     }, 1000);
   }
@@ -425,28 +403,23 @@ if ('serviceWorker' in navigator) {
   function generateFish() {
     const speciesList = ["Common Carp", "Mirror Carp", "Ghost Carp", "Koi Carp", "Catfish"];
     const species = speciesList[Math.floor(Math.random() * speciesList.length)];
-    const weightKg = parseFloat((Math.random() * (55 - 4) + 4).toFixed(1)); // 4–55kg
-    return {
-      species,
-      weightKg,
-      time: new Date().toLocaleString()
-    };
+    const weightKg = parseFloat((Math.random() * (55 - 4) + 4).toFixed(1));
+    return { species, weightKg, time: new Date().toLocaleString() };
   }
 
   function applyStats(fish) {
-    if (!profile) return; // guest without online saving
+    if (!profile) return;
 
-    const w = fish.weightKg;
-    profile.stats.totalWeightKg += w;
+    profile.stats.totalWeightKg += fish.weightKg;
 
-    if (fish.species !== "Catfish" && w > profile.stats.biggestCarpKg) {
-      profile.stats.biggestCarpKg = w;
+    if (fish.species !== "Catfish" && fish.weightKg > profile.stats.biggestCarpKg) {
+      profile.stats.biggestCarpKg = fish.weightKg;
     }
-    if (fish.species === "Common Carp" && w > profile.stats.biggestCommonKg) {
-      profile.stats.biggestCommonKg = w;
+    if (fish.species === "Common Carp" && fish.weightKg > profile.stats.biggestCommonKg) {
+      profile.stats.biggestCommonKg = fish.weightKg;
     }
-    if (fish.species === "Mirror Carp" && w > profile.stats.biggestMirrorKg) {
-      profile.stats.biggestMirrorKg = w;
+    if (fish.species === "Mirror Carp" && fish.weightKg > profile.stats.biggestMirrorKg) {
+      profile.stats.biggestMirrorKg = fish.weightKg;
     }
 
     updateProfileUI();
@@ -473,15 +446,10 @@ if ('serviceWorker' in navigator) {
     applyStats(fish);
     displayCatch(fish);
 
-    if (isFishing) {
-      setTimeout(startFishing, 3000);
-    }
+    if (isFishing) setTimeout(startFishing, 3000);
   }
 
-  // ==========================
-  // LEADERBOARD (Style 3 – Gaming)
-  // ==========================
-  let currentLeaderboardMode = "biggest"; // "biggest" or "total"
+  let currentLeaderboardMode = "biggest";
 
   function setLeaderboardButtons(mode) {
     if (mode === "biggest") {
@@ -518,7 +486,7 @@ if ('serviceWorker' in navigator) {
         const d = docSnap.data() || {};
         const s = d.stats || {};
         players.push({
-          username: d.username || "Unknown angler",
+          username: d.username || "Unknown",
           biggestCarpKg: Number(s.biggestCarpKg || 0),
           totalWeightKg: Number(s.totalWeightKg || 0)
         });
@@ -557,7 +525,6 @@ if ('serviceWorker' in navigator) {
 
       leaderboardList.innerHTML = html;
     } catch (e) {
-      console.error("Error loading leaderboard:", e);
       leaderboardList.innerHTML =
         `<p class="text-red-400 text-sm">Could not load leaderboard right now.</p>`;
     }
@@ -566,9 +533,6 @@ if ('serviceWorker' in navigator) {
   btnLeaderboardBiggest.addEventListener("click", () => loadLeaderboard("biggest"));
   btnLeaderboardTotal.addEventListener("click", () => loadLeaderboard("total"));
 
-  // ==========================
-  // TABS
-  // ==========================
   function showTab(tab){
     screenFishing.classList.add("hidden");
     screenProfile.classList.add("hidden");
@@ -591,7 +555,6 @@ if ('serviceWorker' in navigator) {
     } else if (tab === "leaderboard") {
       screenLeaderboard.classList.remove("hidden");
       tabLeaderboard.classList.add("tab-active");
-      // load current leaderboard mode when switching to this tab
       loadLeaderboard(currentLeaderboardMode);
     }
   }
@@ -600,18 +563,11 @@ if ('serviceWorker' in navigator) {
   tabProfile.addEventListener("click", () => showTab("profile"));
   tabLeaderboard.addEventListener("click", () => showTab("leaderboard"));
 
-  // ==========================
-  // BUTTON EVENTS
-  // ==========================
   toggleFishingButton.addEventListener("click", toggleFishing);
   reelButton.addEventListener("click", reelIn);
 
-  // ==========================
-  // INIT
-  // ==========================
   window.addEventListener("load", () => {
     loadProfileFromCloud();
-    // Fishing tab is default
     showTab("fishing");
   });
 </script>
