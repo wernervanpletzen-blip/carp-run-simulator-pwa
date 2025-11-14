@@ -59,7 +59,7 @@
     </div>
   </div>
 
-  <!-- HEADER WITH BIGGER CENTERED LOGO -->
+  <!-- HEADER WITH BIGGER LOGO -->
   <div class="flex flex-col items-center text-center mb-4 mt-2">
     <img src="./assets/logo.png"
          class="w-[110px] h-[110px] rounded-xl object-contain border border-gray-600 shadow-lg mb-2" />
@@ -111,7 +111,7 @@
     <p>Total weight: <span id="stat-total-weight">0</span> kg</p>
   </div>
 
-  <!-- LEADERBOARD SCREEN -->
+  <!-- LEADERBOARD -->
   <div id="screen-leaderboard" class="hidden">
     <h2 class="text-xl font-bold mb-1">Leaderboard</h2>
 
@@ -133,14 +133,14 @@
 
 </div>
 
-<!-- SERVICE WORKER -->
+<!-- SW -->
 <script>
 if ('serviceWorker' in navigator) {
   navigator.serviceWorker.register('./service-worker.js');
 }
 </script>
 
-<!-- MAIN APP + FIREBASE -->
+<!-- MAIN APP -->
 <script type="module">
 /* FIREBASE */
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-app.js";
@@ -160,6 +160,18 @@ const firebaseConfig = {
 
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
+
+/* VIBRATION */
+function vibratePattern() {
+  if (navigator.vibrate) {
+    navigator.vibrate([200, 100, 200, 100, 200, 100]);
+  }
+}
+function stopVibration() {
+  if (navigator.vibrate) {
+    navigator.vibrate(0);
+  }
+}
 
 /* DOM REFERENCES */
 const startupOverlay=document.getElementById("startup-overlay");
@@ -298,7 +310,7 @@ function startFishing(){
   isFishing=true;
   toggleFishingButton.textContent="Stop Fishing";
   setStatus("Fishing...");
-  timeToBiteEl.textContent="Waiting for the next run...";
+  timeToBiteEl.textContent="Waiting...";
   const waitMs=Math.floor(Math.random()*(60000-5000))+5000;
   biteTimeout=setTimeout(startBite,waitMs);
 }
@@ -307,21 +319,24 @@ function stopFishing(){
   isFishing=false;
   toggleFishingButton.textContent="Start Fishing";
   setStatus("Stopped");
-  timeToBiteEl.textContent="Press Start Fishing to cast again.";
+  timeToBiteEl.textContent="Press Start Fishing.";
   clearTimeout(biteTimeout);
   clearInterval(catchTimer);
   stopAlarm();
+  stopVibration();
   reelButton.classList.add("hidden");
 }
 
 function startBite(){
   if(!isFishing)return;
   countdownValue=15;
-  setStatus("RUN! RUN! RUN!");
+  setStatus("RUN! RUN!");
   timeToBiteEl.textContent="Fish on!";
   reelButton.textContent=`Reel In! (${countdownValue}s)`;
   reelButton.classList.remove("hidden");
+
   startAlarm();
+  vibratePattern();
 
   catchTimer=setInterval(()=>{
     countdownValue--;
@@ -331,6 +346,7 @@ function startBite(){
       clearInterval(catchTimer);
       reelButton.classList.add("hidden");
       stopAlarm();
+      stopVibration();
       setStatus("Missed run");
       timeToBiteEl.textContent="Too slow!";
       if(isFishing)setTimeout(startFishing,3000);
@@ -374,6 +390,7 @@ function displayCatch(fish){
 function reelIn(){
   clearInterval(catchTimer);
   stopAlarm();
+  stopVibration();
   reelButton.classList.add("hidden");
 
   const fish=generateFish();
@@ -424,6 +441,7 @@ async function loadLeaderboard(mode){
     snap.forEach(docSnap=>{
       const d=docSnap.data()||{};
       const s=d.stats||{};
+
       let medal=index+1+".";
       if(index===0)medal="🥇";
       else if(index===1)medal="🥈";
@@ -449,8 +467,7 @@ async function loadLeaderboard(mode){
     });
 
     leaderboardList.innerHTML=html;
-
-  }catch(e){
+  }catch{
     leaderboardList.innerHTML=`<p class="text-red-400">Error loading leaderboard.</p>`;
   }
 }
