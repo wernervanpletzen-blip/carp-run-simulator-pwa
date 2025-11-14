@@ -396,9 +396,16 @@ function startBite(){
   },1000);
 }
 
-/* NEW BALANCED FISH GENERATION WITH KG + LB */
+/* NEW BALANCED FISH GENERATION WITH KG + LB + 6 SPECIES */
 function generateFish() {
-  const speciesList = ["Common Carp","Mirror Carp","Ghost Carp","Koi Carp","Catfish"];
+  const speciesList = [
+    "Common Carp",
+    "Mirror Carp",
+    "Fully Scaled Carp",
+    "Ghost Carp",
+    "Koi Carp",
+    "Catfish"
+  ];
   const species = speciesList[Math.floor(Math.random() * speciesList.length)];
 
   let weightKg;
@@ -426,6 +433,44 @@ function generateFish() {
   };
 }
 
+/* IMAGE SELECTION BASED ON SPECIES + WEIGHT */
+function getFishImage(species, weightKg) {
+  let tier;
+  if (weightKg < 17) {
+    tier = "small";
+  } else if (weightKg < 30) {
+    tier = "big";
+  } else {
+    tier = "monster";
+  }
+
+  let key = "";
+  switch (species) {
+    case "Common Carp":
+      key = "common";
+      break;
+    case "Mirror Carp":
+      key = "mirror";
+      break;
+    case "Fully Scaled Carp":
+      key = "fullyscaled";
+      break;
+    case "Ghost Carp":
+      key = "ghost";
+      break;
+    case "Koi Carp":
+      key = "koi";
+      break;
+    case "Catfish":
+      key = "catfish";
+      break;
+    default:
+      key = "common";
+  }
+
+  return `assets/fish/${tier}_${key}.png`;
+}
+
 /* APPLY STATS + PB POPUP */
 function applyStats(fish){
   if(!profile)return;
@@ -439,7 +484,7 @@ function applyStats(fish){
 
   profile.stats.totalWeightKg += kg;
 
-  // Biggest Carp PB
+  // Biggest Carp PB (only carp species, no catfish)
   if (species !== "Catfish" && kg > profile.stats.biggestCarpKg) {
     profile.stats.biggestCarpKg = kg;
     isPB = true;
@@ -468,14 +513,21 @@ function applyStats(fish){
   }
 }
 
-/* DISPLAY CATCH */
+/* DISPLAY CATCH WITH IMAGE */
 function displayCatch(fish){
+  const imgPath = getFishImage(fish.species, fish.weightKg);
+
   logContentEl.innerHTML=`
-    <p class="text-yellow-400 text-xl font-bold">
-      ${fish.weightKg} kg (${fish.weightLb} lb)
-    </p>
-    <p class="font-bold">${fish.species}</p>
-    <p class="text-gray-400 text-sm">${fish.time}</p>
+    <div class="flex flex-col items-center">
+      <img src="${imgPath}"
+           alt="${fish.species}"
+           class="w-full max-h-64 object-contain mb-3 rounded-lg border border-gray-700 bg-black" />
+      <p class="text-yellow-400 text-xl font-bold">
+        ${fish.weightKg} kg (${fish.weightLb} lb)
+      </p>
+      <p class="font-bold">${fish.species}</p>
+      <p class="text-gray-400 text-sm">${fish.time}</p>
+    </div>
   `;
 }
 
