@@ -316,11 +316,9 @@ async function saveProfileToCloud(){
 function initAuthAndProfile() {
   onAuthStateChanged(auth, async (user) => {
     if (user) {
-      // signed in (anonymous or existing)
       profileId = user.uid;
       await loadProfileFromCloud();
     } else {
-      // not signed in – sign in anonymously
       try {
         await signInAnonymously(auth);
       } catch (e) {
@@ -422,7 +420,12 @@ function startBite(){
   },1000);
 }
 
-/* FISH GENERATION */
+/* UPDATED FISH GENERATION:
+   - 4–17 kg: 85% (most fish)
+   - 17–25 kg: 12% (rare)
+   - 25–55 kg: 3% (very rare monsters)
+   Catfish more common, especially at bigger sizes.
+*/
 function generateFish() {
   const speciesList = [
     "Common Carp",
@@ -432,17 +435,50 @@ function generateFish() {
     "Koi Carp",
     "Catfish"
   ];
-  const species = speciesList[Math.floor(Math.random() * speciesList.length)];
 
-  let weightKg;
+  // Decide weight tier first
   const roll = Math.random();
+  let weightKg;
 
-  if (roll < 0.70) {
+  if (roll < 0.85) {
+    // 85%: normal fish, 4–17 kg
     weightKg = Math.random() * (17 - 4) + 4;
-  } else if (roll < 0.95) {
+  } else if (roll < 0.97) {
+    // 12%: decent big fish, 17–25 kg
     weightKg = Math.random() * (25 - 17) + 17;
   } else {
+    // 3%: true monsters, 25–55 kg
     weightKg = Math.random() * (55 - 25) + 25;
+  }
+
+  // Species weighting: carp 17kg+ are rare, catfish more common as weight increases
+  let species;
+  const r2 = Math.random();
+
+  if (weightKg < 17) {
+    // Mostly smaller carp, some catfish
+    if (r2 < 0.25)      species = "Common Carp";
+    else if (r2 < 0.45) species = "Mirror Carp";
+    else if (r2 < 0.60) species = "Fully Scaled Carp";
+    else if (r2 < 0.72) species = "Ghost Carp";
+    else if (r2 < 0.80) species = "Koi Carp";
+    else                species = "Catfish";      // ~20% catfish here
+  } else if (weightKg < 25) {
+    // Bigger fish: catfish significantly more common
+    if (r2 < 0.40)      species = "Catfish";      // 40% catfish
+    else if (r2 < 0.52) species = "Common Carp";
+    else if (r2 < 0.64) species = "Mirror Carp";
+    else if (r2 < 0.76) species = "Fully Scaled Carp";
+    else if (r2 < 0.88) species = "Ghost Carp";
+    else                species = "Koi Carp";
+  } else {
+    // Monsters: catfish dominate
+    if (r2 < 0.60)      species = "Catfish";      // 60% catfish
+    else if (r2 < 0.68) species = "Common Carp";
+    else if (r2 < 0.76) species = "Mirror Carp";
+    else if (r2 < 0.84) species = "Fully Scaled Carp";
+    else if (r2 < 0.92) species = "Ghost Carp";
+    else                species = "Koi Carp";
   }
 
   weightKg = parseFloat(weightKg.toFixed(1));
@@ -527,7 +563,7 @@ function displayCatch(fish){
   `;
 }
 
-/* UPDATED REEL-IN LOGIC (NO AUTO RESTART) */
+/* REEL-IN: NO AUTO RESTART */
 function reelIn(){
   clearInterval(catchTimer);
   stopAlarm();
@@ -666,3 +702,4 @@ window.addEventListener("load",()=>{
 
 </body>
 </html>
+
