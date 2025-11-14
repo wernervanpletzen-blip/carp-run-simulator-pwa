@@ -133,7 +133,7 @@
 
 </div>
 
-<!-- SW -->
+<!-- Service Worker -->
 <script>
 if ('serviceWorker' in navigator) {
   navigator.serviceWorker.register('./service-worker.js');
@@ -311,7 +311,7 @@ function startFishing(){
   toggleFishingButton.textContent="Stop Fishing";
   setStatus("Fishing...");
   timeToBiteEl.textContent="Waiting...";
-  const waitMs=Math.floor(Math.random()*(60000-5000))+5000;
+  const waitMs=Math.floor(Math.random()*(60000-5000))+5000; // 5–60s
   biteTimeout=setTimeout(startBite,waitMs);
 }
 
@@ -354,11 +354,34 @@ function startBite(){
   },1000);
 }
 
-function generateFish(){
-  const speciesList=["Common Carp","Mirror Carp","Ghost Carp","Koi Carp","Catfish"];
-  const species=speciesList[Math.floor(Math.random()*speciesList.length)];
-  const weightKg=parseFloat((Math.random()*(55-4)+4).toFixed(1));
-  return{species,weightKg,time:new Date().toLocaleString()};
+/* NEW BALANCED FISH GENERATION WITH KG + LB */
+function generateFish() {
+  const speciesList = ["Common Carp","Mirror Carp","Ghost Carp","Koi Carp","Catfish"];
+  const species = speciesList[Math.floor(Math.random() * speciesList.length)];
+
+  let weightKg;
+  const roll = Math.random();
+
+  if (roll < 0.70) {
+    // 70% chance: 4–17 kg
+    weightKg = Math.random() * (17 - 4) + 4;
+  } else if (roll < 0.95) {
+    // 25% chance: 17–25 kg
+    weightKg = Math.random() * (25 - 17) + 17;
+  } else {
+    // 5% chance: 25–55 kg (monster fish)
+    weightKg = Math.random() * (55 - 25) + 25;
+  }
+
+  weightKg = parseFloat(weightKg.toFixed(1));
+  const weightLb = parseFloat((weightKg * 2.20462).toFixed(1));
+
+  return {
+    species,
+    weightKg,
+    weightLb,
+    time: new Date().toLocaleString()
+  };
 }
 
 function applyStats(fish){
@@ -379,9 +402,12 @@ function applyStats(fish){
   saveProfileToCloud();
 }
 
+/* UPDATED DISPLAY: KG + LB */
 function displayCatch(fish){
   logContentEl.innerHTML=`
-    <p class="text-yellow-400 text-xl font-bold">${fish.weightKg} kg</p>
+    <p class="text-yellow-400 text-xl font-bold">
+      ${fish.weightKg} kg (${fish.weightLb} lb)
+    </p>
     <p class="font-bold">${fish.species}</p>
     <p class="text-gray-400 text-sm">${fish.time}</p>
   `;
