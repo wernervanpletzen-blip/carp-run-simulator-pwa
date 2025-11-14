@@ -60,7 +60,6 @@
   <div id="startup-overlay">
     <div class="bg-gray-800 p-6 rounded-xl w-full max-w-sm border border-gray-700 text-center">
 
-      <!-- Startup Logo -->
       <img src="./assets/logo.png"
            class="w-28 h-28 mx-auto mb-4 rounded-lg object-contain border border-gray-600 shadow-xl" />
 
@@ -155,7 +154,6 @@
 
 </div>
 
-<!-- SERVICE WORKER -->
 <script>
 if ('serviceWorker' in navigator) {
   navigator.serviceWorker.register('./service-worker.js');
@@ -195,7 +193,7 @@ function stopVibration() {
   }
 }
 
-/* PB POPUP FUNCTION */
+/* PB POPUP */
 function showPBPopup(text) {
   const popup = document.getElementById("pb-popup");
   const pbText = document.getElementById("pb-text");
@@ -391,12 +389,13 @@ function startBite(){
       stopVibration();
       setStatus("Missed run");
       timeToBiteEl.textContent="Too slow!";
-      if(isFishing)setTimeout(startFishing,3000);
+      isFishing=false;
+      toggleFishingButton.textContent="Start Fishing";
     }
   },1000);
 }
 
-/* NEW BALANCED FISH GENERATION WITH KG + LB + 6 SPECIES */
+/* NEW FISH GENERATION */
 function generateFish() {
   const speciesList = [
     "Common Carp",
@@ -412,60 +411,35 @@ function generateFish() {
   const roll = Math.random();
 
   if (roll < 0.70) {
-    // 70% chance: 4–17 kg
     weightKg = Math.random() * (17 - 4) + 4;
   } else if (roll < 0.95) {
-    // 25% chance: 17–25 kg
     weightKg = Math.random() * (25 - 17) + 17;
   } else {
-    // 5% chance: 25–55 kg (monster fish)
     weightKg = Math.random() * (55 - 25) + 25;
   }
 
   weightKg = parseFloat(weightKg.toFixed(1));
   const weightLb = parseFloat((weightKg * 2.20462).toFixed(1));
 
-  return {
-    species,
-    weightKg,
-    weightLb,
-    time: new Date().toLocaleString()
-  };
+  return { species, weightKg, weightLb, time:new Date().toLocaleString() };
 }
 
-/* IMAGE SELECTION BASED ON SPECIES + WEIGHT */
+/* IMAGE SELECTION */
 function getFishImage(species, weightKg) {
   let tier;
-  if (weightKg < 17) {
-    tier = "small";
-  } else if (weightKg < 30) {
-    tier = "big";
-  } else {
-    tier = "monster";
-  }
+  if (weightKg < 17) tier = "small";
+  else if (weightKg < 30) tier = "big";
+  else tier = "monster";
 
   let key = "";
   switch (species) {
-    case "Common Carp":
-      key = "common";
-      break;
-    case "Mirror Carp":
-      key = "mirror";
-      break;
-    case "Fully Scaled Carp":
-      key = "fullyscaled";
-      break;
-    case "Ghost Carp":
-      key = "ghost";
-      break;
-    case "Koi Carp":
-      key = "koi";
-      break;
-    case "Catfish":
-      key = "catfish";
-      break;
-    default:
-      key = "common";
+    case "Common Carp": key = "common"; break;
+    case "Mirror Carp": key = "mirror"; break;
+    case "Fully Scaled Carp": key = "fullyscaled"; break;
+    case "Ghost Carp": key = "ghost"; break;
+    case "Koi Carp": key = "koi"; break;
+    case "Catfish": key = "catfish"; break;
+    default: key = "common";
   }
 
   return `assets/fish/${tier}_${key}.png`;
@@ -484,21 +458,18 @@ function applyStats(fish){
 
   profile.stats.totalWeightKg += kg;
 
-  // Biggest Carp PB (only carp species, no catfish)
   if (species !== "Catfish" && kg > profile.stats.biggestCarpKg) {
     profile.stats.biggestCarpKg = kg;
     isPB = true;
     pbMessage = `NEW PB! ${lb} lb ${species}`;
   }
 
-  // Biggest Common PB
   if (species === "Common Carp" && kg > profile.stats.biggestCommonKg) {
     profile.stats.biggestCommonKg = kg;
     isPB = true;
     pbMessage = `NEW PB! ${lb} lb Common Carp`;
   }
 
-  // Biggest Mirror PB
   if (species === "Mirror Carp" && kg > profile.stats.biggestMirrorKg) {
     profile.stats.biggestMirrorKg = kg;
     isPB = true;
@@ -508,12 +479,10 @@ function applyStats(fish){
   updateProfileUI();
   saveProfileToCloud();
 
-  if (isPB) {
-    showPBPopup(pbMessage);
-  }
+  if (isPB) showPBPopup(pbMessage);
 }
 
-/* DISPLAY CATCH WITH IMAGE */
+/* DISPLAY CATCH */
 function displayCatch(fish){
   const imgPath = getFishImage(fish.species, fish.weightKg);
 
@@ -531,6 +500,7 @@ function displayCatch(fish){
   `;
 }
 
+/* UPDATED REEL-IN LOGIC (NO AUTO RESTART) */
 function reelIn(){
   clearInterval(catchTimer);
   stopAlarm();
@@ -539,12 +509,13 @@ function reelIn(){
 
   const fish=generateFish();
   setStatus("Fish landed!");
-  timeToBiteEl.textContent="Recasting...";
+  timeToBiteEl.textContent="Press Start Fishing to cast again.";
 
   applyStats(fish);
   displayCatch(fish);
 
-  if(isFishing)setTimeout(startFishing,3000);
+  isFishing = false;
+  toggleFishingButton.textContent = "Start Fishing";
 }
 
 /* LEADERBOARD */
