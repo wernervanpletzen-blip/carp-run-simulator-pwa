@@ -3,18 +3,16 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-
   <title>Carp Run Alarm Simulator</title>
 
   <meta name="theme-color" content="#111827" />
   <link rel="manifest" href="./manifest.webmanifest" />
-
   <script src="https://cdn.tailwindcss.com"></script>
 
   <style>
     body {
       background:#000;
-      font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+      font-family: Inter, system-ui, sans-serif;
       margin:0;
       padding:0;
     }
@@ -25,7 +23,7 @@
       display:flex;
       justify-content:center;
       align-items:center;
-      z-index:9999;
+      z-index:999999;
     }
     .tab-active { background:#3b82f6; color:#fff; }
     .tab-inactive { background:#1f2937; color:#ccc; }
@@ -40,27 +38,23 @@
   <div id="startup-overlay">
     <div class="bg-gray-800 p-6 rounded-xl w-full max-w-sm border border-gray-700 text-center">
 
-      <!-- Startup logo (kept original size unless you want bigger) -->
+      <!-- Startup Logo -->
       <img src="./assets/logo.png"
            class="w-28 h-28 mx-auto mb-4 rounded-lg object-contain border border-gray-600 shadow-xl" />
 
       <h1 class="text-2xl font-bold mb-2">Create Profile</h1>
-      <p class="text-sm text-gray-300 mb-3">
-        Choose a username to start fishing. Your stats will be saved online.
-      </p>
+      <p class="text-sm text-gray-300 mb-3">Choose a username to begin.</p>
 
-      <input id="profile-name-input"
-             placeholder="Enter username"
+      <input id="profile-name-input" placeholder="Enter username"
              class="w-full p-2 mb-4 bg-gray-700 border border-gray-600 rounded text-center" />
 
-      <button id="save-profile-btn"
-              class="w-full py-2 bg-blue-600 font-bold rounded hover:bg-blue-700 mb-3">
+      <button id="save-profile-btn" class="w-full py-2 bg-blue-600 font-bold rounded mb-3">
         Save Profile & Start
       </button>
 
       <button id="continue-btn"
-              class="w-full py-2 bg-gray-600 font-bold rounded hover:bg-gray-500 text-sm">
-        Continue as Guest (no online stats)
+              class="w-full py-2 bg-gray-600 font-bold rounded text-sm">
+        Continue as Guest
       </button>
     </div>
   </div>
@@ -92,9 +86,7 @@
 
     <div class="bg-gray-700 p-3 rounded text-center mb-4">
       <p id="current-status" class="text-green-400 font-bold">Stopped</p>
-      <p id="time-to-bite" class="text-gray-300 text-sm">
-        Waiting for a bite...
-      </p>
+      <p id="time-to-bite" class="text-gray-300 text-sm">Waiting for a bite...</p>
     </div>
 
     <button id="reel-button"
@@ -122,6 +114,7 @@
   <!-- LEADERBOARD SCREEN -->
   <div id="screen-leaderboard" class="hidden">
     <h2 class="text-xl font-bold mb-1">Leaderboard</h2>
+
     <div class="flex gap-2 mb-3">
       <button id="btn-leaderboard-biggest"
               class="flex-1 py-2 rounded text-sm font-bold bg-blue-600 text-white">
@@ -132,6 +125,7 @@
         Total Weight
       </button>
     </div>
+
     <div id="leaderboard-list" class="space-y-2 text-sm">
       <p class="text-gray-400 text-sm">Loading leaderboard...</p>
     </div>
@@ -139,48 +133,371 @@
 
 </div>
 
-
 <!-- SERVICE WORKER -->
 <script>
 if ('serviceWorker' in navigator) {
-  window.addEventListener('load', () => {
-    navigator.serviceWorker.register('./service-worker.js');
-  });
+  navigator.serviceWorker.register('./service-worker.js');
 }
 </script>
 
 <!-- MAIN APP + FIREBASE -->
 <script type="module">
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-app.js";
-  import {
-    getFirestore,
-    doc,
-    getDoc,
-    setDoc,
-    serverTimestamp,
-    collection,
-    getDocs,
-    query,
-    orderBy,
-    limit
-  } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-firestore.js";
+/* FIREBASE */
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-app.js";
+import {
+  getFirestore, doc, getDoc, setDoc, serverTimestamp,
+  collection, getDocs, query, orderBy, limit
+} from "https://www.gstatic.com/firebasejs/12.6.0/firebase-firestore.js";
 
-  const firebaseConfig = {
-    apiKey: "AIzaSyASz_xXcEF5pV6CAZR9YfPMUxk_8kS_VTU",
-    authDomain: "carp-simulator-app-394af.firebaseapp.com",
-    projectId: "carp-simulator-app-394af",
-    storageBucket: "carp-simulator-app-394af.firebasestorage.app",
-    messagingSenderId: "761509507210",
-    appId: "1:761509507210:web:1c5bb0d8af518fab3ebd73"
+const firebaseConfig = {
+  apiKey: "AIzaSyASz_xXcEF5pV6CAZR9YfPMUxk_8kS_VTU",
+  authDomain: "carp-simulator-app-394af.firebaseapp.com",
+  projectId: "carp-simulator-app-394af",
+  storageBucket: "carp-simulator-app-394af.firebasestorage.app",
+  messagingSenderId: "761509507210",
+  appId: "1:761509507210:web:1c5bb0d8af518fab3ebd73"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+
+/* DOM REFERENCES */
+const startupOverlay=document.getElementById("startup-overlay");
+const nameInput=document.getElementById("profile-name-input");
+const saveProfileBtn=document.getElementById("save-profile-btn");
+const continueBtn=document.getElementById("continue-btn");
+
+const headerUsername=document.getElementById("header-username");
+
+const statBiggestCarp=document.getElementById("stat-biggest-carp");
+const statBiggestCommon=document.getElementById("stat-biggest-common");
+const statBiggestMirror=document.getElementById("stat-biggest-mirror");
+const statTotalWeight=document.getElementById("stat-total-weight");
+
+const toggleFishingButton=document.getElementById("toggle-fishing-button");
+const currentStatusEl=document.getElementById("current-status");
+const timeToBiteEl=document.getElementById("time-to-bite");
+const reelButton=document.getElementById("reel-button");
+const logContentEl=document.getElementById("log-content");
+
+const tabFishing=document.getElementById("tab-fishing");
+const tabProfile=document.getElementById("tab-profile");
+const tabLeaderboard=document.getElementById("tab-leaderboard");
+
+const screenFishing=document.getElementById("screen-fishing");
+const screenProfile=document.getElementById("screen-profile");
+const screenLeaderboard=document.getElementById("screen-leaderboard");
+
+const btnLeaderboardBiggest=document.getElementById("btn-leaderboard-biggest");
+const btnLeaderboardTotal=document.getElementById("btn-leaderboard-total");
+const leaderboardList=document.getElementById("leaderboard-list");
+
+/* PROFILE SYSTEM */
+let profile=null;
+let profileId=null;
+
+function createDefaultProfile(username="Guest"){
+  return{
+    username,
+    stats:{biggestCarpKg:0,biggestCommonKg:0,biggestMirrorKg:0,totalWeightKg:0},
+    createdAt:new Date().toISOString()
   };
+}
 
-  const app = initializeApp(firebaseConfig);
-  const db = getFirestore(app);
+function getOrCreateProfileId(){
+  try{
+    let id=localStorage.getItem("carpProfileId");
+    if(!id){id=crypto.randomUUID();localStorage.setItem("carpProfileId",id);}
+    return id;
+  }catch{
+    if(!window.__tempProfileId){
+      window.__tempProfileId="id-"+Math.random().toString(36).slice(2);
+    }
+    return window.__tempProfileId;
+  }
+}
 
-  /* --- trimmed for message size --- 
-     🔥 I will generate the final part (main JS logic) in the next message.
-     It is unchanged from the working version.
-  */
+function hideStartupOverlay(){startupOverlay.style.display="none";}
+function showStartupOverlay(){startupOverlay.style.display="flex";}
+
+function updateProfileUI(){
+  if(!profile)return;
+  headerUsername.textContent=profile.username;
+  statBiggestCarp.textContent=profile.stats.biggestCarpKg.toFixed(1);
+  statBiggestCommon.textContent=profile.stats.biggestCommonKg.toFixed(1);
+  statBiggestMirror.textContent=profile.stats.biggestMirrorKg.toFixed(1);
+  statTotalWeight.textContent=profile.stats.totalWeightKg.toFixed(1);
+}
+
+async function loadProfileFromCloud(){
+  profileId=getOrCreateProfileId();
+  try{
+    const ref=doc(db,"players",profileId);
+    const snap=await getDoc(ref);
+
+    if(snap.exists()){
+      profile=snap.data();
+      if(!profile.stats){profile.stats=createDefaultProfile(profile.username).stats;}
+      updateProfileUI();
+      hideStartupOverlay();
+    }else{
+      profile=null;
+      showStartupOverlay();
+    }
+  }catch{
+    profile=createDefaultProfile("Guest");
+    updateProfileUI();
+    showStartupOverlay();
+  }
+}
+
+async function saveProfileToCloud(){
+  if(!profileId||!profile)return;
+  await setDoc(doc(db,"players",profileId),{
+    ...profile,updatedAt:serverTimestamp()
+  });
+}
+
+saveProfileBtn.addEventListener("click",()=>{
+  const name=nameInput.value.trim();
+  if(!name){alert("Enter username");return;}
+
+  if(!profile){profile=createDefaultProfile(name);}
+  else{profile.username=name;}
+
+  updateProfileUI();
+  hideStartupOverlay();
+  saveProfileToCloud();
+});
+
+continueBtn.addEventListener("click",()=>{
+  if(!profile){
+    profile=createDefaultProfile("Guest");
+  }
+  updateProfileUI();
+  hideStartupOverlay();
+});
+
+/* FISHING */
+let isFishing=false;
+let countdownValue=0;
+let biteTimeout=null;
+let catchTimer=null;
+
+const alarmSound=new Audio("./assets/CarpRunSound001.mp3");
+alarmSound.loop=true;
+
+function startAlarm(){alarmSound.currentTime=0;alarmSound.play().catch(()=>{});}
+function stopAlarm(){alarmSound.pause();alarmSound.currentTime=0;}
+
+function setStatus(t){currentStatusEl.textContent=t;}
+
+function toggleFishing(){isFishing?stopFishing():startFishing();}
+
+function startFishing(){
+  isFishing=true;
+  toggleFishingButton.textContent="Stop Fishing";
+  setStatus("Fishing...");
+  timeToBiteEl.textContent="Waiting for the next run...";
+  const waitMs=Math.floor(Math.random()*(60000-5000))+5000;
+  biteTimeout=setTimeout(startBite,waitMs);
+}
+
+function stopFishing(){
+  isFishing=false;
+  toggleFishingButton.textContent="Start Fishing";
+  setStatus("Stopped");
+  timeToBiteEl.textContent="Press Start Fishing to cast again.";
+  clearTimeout(biteTimeout);
+  clearInterval(catchTimer);
+  stopAlarm();
+  reelButton.classList.add("hidden");
+}
+
+function startBite(){
+  if(!isFishing)return;
+  countdownValue=15;
+  setStatus("RUN! RUN! RUN!");
+  timeToBiteEl.textContent="Fish on!";
+  reelButton.textContent=`Reel In! (${countdownValue}s)`;
+  reelButton.classList.remove("hidden");
+  startAlarm();
+
+  catchTimer=setInterval(()=>{
+    countdownValue--;
+    reelButton.textContent=`Reel In! (${countdownValue}s)`;
+
+    if(countdownValue<=0){
+      clearInterval(catchTimer);
+      reelButton.classList.add("hidden");
+      stopAlarm();
+      setStatus("Missed run");
+      timeToBiteEl.textContent="Too slow!";
+      if(isFishing)setTimeout(startFishing,3000);
+    }
+  },1000);
+}
+
+function generateFish(){
+  const speciesList=["Common Carp","Mirror Carp","Ghost Carp","Koi Carp","Catfish"];
+  const species=speciesList[Math.floor(Math.random()*speciesList.length)];
+  const weightKg=parseFloat((Math.random()*(55-4)+4).toFixed(1));
+  return{species,weightKg,time:new Date().toLocaleString()};
+}
+
+function applyStats(fish){
+  if(!profile)return;
+  profile.stats.totalWeightKg+=fish.weightKg;
+
+  if(fish.species!=="Catfish"&&fish.weightKg>profile.stats.biggestCarpKg){
+    profile.stats.biggestCarpKg=fish.weightKg;
+  }
+  if(fish.species==="Common Carp"&&fish.weightKg>profile.stats.biggestCommonKg){
+    profile.stats.biggestCommonKg=fish.weightKg;
+  }
+  if(fish.species==="Mirror Carp"&&fish.weightKg>profile.stats.biggestMirrorKg){
+    profile.stats.biggestMirrorKg=fish.weightKg;
+  }
+
+  updateProfileUI();
+  saveProfileToCloud();
+}
+
+function displayCatch(fish){
+  logContentEl.innerHTML=`
+    <p class="text-yellow-400 text-xl font-bold">${fish.weightKg} kg</p>
+    <p class="font-bold">${fish.species}</p>
+    <p class="text-gray-400 text-sm">${fish.time}</p>
+  `;
+}
+
+function reelIn(){
+  clearInterval(catchTimer);
+  stopAlarm();
+  reelButton.classList.add("hidden");
+
+  const fish=generateFish();
+  setStatus("Fish landed!");
+  timeToBiteEl.textContent="Recasting...";
+
+  applyStats(fish);
+  displayCatch(fish);
+
+  if(isFishing)setTimeout(startFishing,3000);
+}
+
+/* LEADERBOARD */
+let currentLeaderboardMode="biggest";
+
+function setLeaderboardButtons(mode){
+  if(mode==="biggest"){
+    btnLeaderboardBiggest.classList.add("bg-blue-600","text-white");
+    btnLeaderboardBiggest.classList.remove("bg-gray-700","text-gray-200");
+    btnLeaderboardTotal.classList.add("bg-gray-700","text-gray-200");
+    btnLeaderboardTotal.classList.remove("bg-blue-600","text-white");
+  }else{
+    btnLeaderboardTotal.classList.add("bg-blue-600","text-white");
+    btnLeaderboardTotal.classList.remove("bg-gray-700","text-gray-200");
+    btnLeaderboardBiggest.classList.add("bg-gray-700","text-gray-200");
+    btnLeaderboardBiggest.classList.remove("bg-blue-600","text-white");
+  }
+}
+
+async function loadLeaderboard(mode){
+  currentLeaderboardMode=mode;
+  setLeaderboardButtons(mode);
+  leaderboardList.innerHTML=`<p class="text-gray-400">Loading...</p>`;
+
+  try{
+    const playersRef=collection(db,"players");
+    const field=mode==="total"?"stats.totalWeightKg":"stats.biggestCarpKg";
+    const q=query(playersRef,orderBy(field,"desc"),limit(10));
+    const snap=await getDocs(q);
+
+    if(snap.empty){
+      leaderboardList.innerHTML=`<p class="text-gray-400">No records yet.</p>`;
+      return;
+    }
+
+    let html="";
+    let index=0;
+    snap.forEach(docSnap=>{
+      const d=docSnap.data()||{};
+      const s=d.stats||{};
+      let medal=index+1+".";
+      if(index===0)medal="🥇";
+      else if(index===1)medal="🥈";
+      else if(index===2)medal="🥉";
+
+      const statValue=mode==="total"
+        ?`${(s.totalWeightKg||0).toFixed(1)} kg`
+        :`${(s.biggestCarpKg||0).toFixed(1)} kg`;
+
+      html+=`
+        <div class="flex items-center justify-between bg-gray-800 rounded-lg px-3 py-2 border border-gray-700">
+          <div class="flex items-center gap-3">
+            <div class="text-xl">${medal}</div>
+            <div>
+              <p class="font-bold text-sm">${d.username||"Unknown"}</p>
+              <p class="text-xs text-gray-400">${mode==="total"?"Total Weight":"Biggest Carp"}</p>
+            </div>
+          </div>
+          <div class="font-bold text-sm text-yellow-300">${statValue}</div>
+        </div>
+      `;
+      index++;
+    });
+
+    leaderboardList.innerHTML=html;
+
+  }catch(e){
+    leaderboardList.innerHTML=`<p class="text-red-400">Error loading leaderboard.</p>`;
+  }
+}
+
+btnLeaderboardBiggest.addEventListener("click",()=>loadLeaderboard("biggest"));
+btnLeaderboardTotal.addEventListener("click",()=>loadLeaderboard("total"));
+
+/* TABS */
+function showTab(tab){
+  screenFishing.classList.add("hidden");
+  screenProfile.classList.add("hidden");
+  screenLeaderboard.classList.add("hidden");
+
+  tabFishing.classList.remove("tab-active");
+  tabProfile.classList.remove("tab-active");
+  tabLeaderboard.classList.remove("tab-active");
+
+  tabFishing.classList.add("tab-inactive");
+  tabProfile.classList.add("tab-inactive");
+  tabLeaderboard.classList.add("tab-inactive");
+
+  if(tab==="fishing"){
+    screenFishing.classList.remove("hidden");
+    tabFishing.classList.add("tab-active");
+  }else if(tab==="profile"){
+    screenProfile.classList.remove("hidden");
+    tabProfile.classList.add("tab-active");
+  }else{
+    screenLeaderboard.classList.remove("hidden");
+    tabLeaderboard.classList.add("tab-active");
+    loadLeaderboard(currentLeaderboardMode);
+  }
+}
+
+tabFishing.addEventListener("click",()=>showTab("fishing"));
+tabProfile.addEventListener("click",()=>showTab("profile"));
+tabLeaderboard.addEventListener("click",()=>showTab("leaderboard"));
+
+/* BUTTONS */
+toggleFishingButton.addEventListener("click",toggleFishing);
+reelButton.addEventListener("click",reelIn);
+
+/* INIT */
+window.addEventListener("load",()=>{
+  loadProfileFromCloud();
+  showTab("fishing");
+});
 </script>
 
 </body>
