@@ -27,10 +27,32 @@
     }
     .tab-active { background:#3b82f6; color:#fff; }
     .tab-inactive { background:#1f2937; color:#ccc; }
+
+    /* PB Popup Styles */
+    #pb-popup {
+      backdrop-filter: blur(3px);
+    }
+
+    @keyframes pbFade {
+      0% { opacity: 0; transform: scale(0.7); }
+      10% { opacity: 1; transform: scale(1); }
+      90% { opacity: 1; transform: scale(1); }
+      100% { opacity: 0; transform: scale(0.7); }
+    }
+    .animate-pb-popup {
+      animation: pbFade 2.8s ease forwards;
+    }
   </style>
 </head>
 
 <body class="p-4 text-white flex justify-center min-h-screen">
+
+<!-- PB POPUP -->
+<div id="pb-popup" class="fixed inset-0 hidden items-center justify-center z-[9999]">
+  <div class="bg-black/80 px-6 py-4 rounded-xl text-center border border-yellow-400 shadow-lg animate-pb-popup">
+    <p id="pb-text" class="text-yellow-300 text-2xl font-extrabold drop-shadow-lg"></p>
+  </div>
+</div>
 
 <div id="app-container" class="max-w-lg w-full bg-gray-900 p-4 rounded-xl border border-gray-700">
 
@@ -133,7 +155,7 @@
 
 </div>
 
-<!-- Service Worker -->
+<!-- SERVICE WORKER -->
 <script>
 if ('serviceWorker' in navigator) {
   navigator.serviceWorker.register('./service-worker.js');
@@ -171,6 +193,21 @@ function stopVibration() {
   if (navigator.vibrate) {
     navigator.vibrate(0);
   }
+}
+
+/* PB POPUP FUNCTION */
+function showPBPopup(text) {
+  const popup = document.getElementById("pb-popup");
+  const pbText = document.getElementById("pb-text");
+
+  pbText.textContent = text;
+  popup.classList.remove("hidden");
+  popup.classList.add("flex");
+
+  setTimeout(() => {
+    popup.classList.add("hidden");
+    popup.classList.remove("flex");
+  }, 2800);
 }
 
 /* DOM REFERENCES */
@@ -211,7 +248,12 @@ let profileId=null;
 function createDefaultProfile(username="Guest"){
   return{
     username,
-    stats:{biggestCarpKg:0,biggestCommonKg:0,biggestMirrorKg:0,totalWeightKg:0},
+    stats:{
+      biggestCarpKg:0,
+      biggestCommonKg:0,
+      biggestMirrorKg:0,
+      totalWeightKg:0
+    },
     createdAt:new Date().toISOString()
   };
 }
@@ -290,7 +332,7 @@ continueBtn.addEventListener("click",()=>{
   hideStartupOverlay();
 });
 
-/* FISHING */
+/* FISHING LOGIC */
 let isFishing=false;
 let countdownValue=0;
 let biteTimeout=null;
@@ -384,25 +426,49 @@ function generateFish() {
   };
 }
 
+/* APPLY STATS + PB POPUP */
 function applyStats(fish){
   if(!profile)return;
-  profile.stats.totalWeightKg+=fish.weightKg;
 
-  if(fish.species!=="Catfish"&&fish.weightKg>profile.stats.biggestCarpKg){
-    profile.stats.biggestCarpKg=fish.weightKg;
+  let isPB = false;
+  let pbMessage = "";
+
+  const kg = fish.weightKg;
+  const lb = fish.weightLb;
+  const species = fish.species;
+
+  profile.stats.totalWeightKg += kg;
+
+  // Biggest Carp PB
+  if (species !== "Catfish" && kg > profile.stats.biggestCarpKg) {
+    profile.stats.biggestCarpKg = kg;
+    isPB = true;
+    pbMessage = `NEW PB! ${lb} lb ${species}`;
   }
-  if(fish.species==="Common Carp"&&fish.weightKg>profile.stats.biggestCommonKg){
-    profile.stats.biggestCommonKg=fish.weightKg;
+
+  // Biggest Common PB
+  if (species === "Common Carp" && kg > profile.stats.biggestCommonKg) {
+    profile.stats.biggestCommonKg = kg;
+    isPB = true;
+    pbMessage = `NEW PB! ${lb} lb Common Carp`;
   }
-  if(fish.species==="Mirror Carp"&&fish.weightKg>profile.stats.biggestMirrorKg){
-    profile.stats.biggestMirrorKg=fish.weightKg;
+
+  // Biggest Mirror PB
+  if (species === "Mirror Carp" && kg > profile.stats.biggestMirrorKg) {
+    profile.stats.biggestMirrorKg = kg;
+    isPB = true;
+    pbMessage = `NEW PB! ${lb} lb Mirror Carp`;
   }
 
   updateProfileUI();
   saveProfileToCloud();
+
+  if (isPB) {
+    showPBPopup(pbMessage);
+  }
 }
 
-/* UPDATED DISPLAY: KG + LB */
+/* DISPLAY CATCH */
 function displayCatch(fish){
   logContentEl.innerHTML=`
     <p class="text-yellow-400 text-xl font-bold">
@@ -453,7 +519,10 @@ async function loadLeaderboard(mode){
 
   try{
     const playersRef=collection(db,"players");
-    const field=mode==="total"?"stats.totalWeightKg":"stats.biggestCarpKg";
+    const field=mode==="total"
+      ?"stats.totalWeightKg"
+      :"stats.biggestCarpKg";
+
     const q=query(playersRef,orderBy(field,"desc"),limit(10));
     const snap=await getDocs(q);
 
@@ -483,7 +552,9 @@ async function loadLeaderboard(mode){
             <div class="text-xl">${medal}</div>
             <div>
               <p class="font-bold text-sm">${d.username||"Unknown"}</p>
-              <p class="text-xs text-gray-400">${mode==="total"?"Total Weight":"Biggest Carp"}</p>
+              <p class="text-xs text-gray-400">
+                ${mode==="total" ? "Total Weight" : "Biggest Carp"}
+              </p>
             </div>
           </div>
           <div class="font-bold text-sm text-yellow-300">${statValue}</div>
