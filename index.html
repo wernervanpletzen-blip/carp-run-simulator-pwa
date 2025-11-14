@@ -8,17 +8,22 @@
 
   <meta name="theme-color" content="#111827" />
   <link rel="manifest" href="./manifest.webmanifest" />
+
   <script src="https://cdn.tailwindcss.com"></script>
 
   <style>
-    body { background:#000; font-family:Inter,sans-serif; }
+    body { background:#000; font-family:Inter,sans-serif; margin:0; padding:0; }
+
     #startup-overlay {
-      position: fixed; inset: 0; background: rgba(0,0,0,0.9);
-      display: flex; justify-content:center; align-items:center;
-      z-index: 999;
+      position:fixed; inset:0;
+      background:rgba(0,0,0,0.9);
+      display:flex; justify-content:center; align-items:center;
+      z-index:999;
     }
-    .tab-active { background:#3b82f6; }
+
+    .tab-active { background:#3b82f6; color:#fff; }
     .tab-inactive { background:#1f2937; color:#ccc; }
+
     .alarm-flash { animation: flash .3s infinite alternate; background:#ff3333!important; }
     @keyframes flash { from{box-shadow:0 0 8px red;} to{box-shadow:0 0 25px red;} }
   </style>
@@ -32,13 +37,20 @@
   <div id="startup-overlay" class="hidden">
     <div class="bg-gray-800 p-6 rounded-xl w-full max-w-sm border border-gray-700 text-center">
       <h1 class="text-2xl font-bold mb-4">Create Profile</h1>
+
       <input id="profile-name-input"
              placeholder="Enter username"
              class="w-full p-2 mb-4 bg-gray-700 border border-gray-600 rounded text-center" />
 
       <button id="save-profile-btn"
-              class="w-full py-2 bg-blue-600 font-bold rounded hover:bg-blue-700">
-        Save & Start
+              class="w-full py-2 bg-blue-600 font-bold rounded hover:bg-blue-700 mb-3">
+        Save Profile
+      </button>
+
+      <!-- NEW: CONTINUE BUTTON -->
+      <button id="continue-btn"
+              class="w-full py-2 bg-green-600 font-bold rounded hover:bg-green-700">
+        Continue
       </button>
     </div>
   </div>
@@ -49,9 +61,7 @@
       <p class="text-xs text-gray-300">Logged in as</p>
       <p id="header-username" class="text-lg font-bold">Guest</p>
     </div>
-    <div class="w-10 h-10 bg-blue-600 rounded-full flex items-center justify-center text-xl">
-      🎣
-    </div>
+    <div class="w-10 h-10 bg-blue-600 rounded-full flex items-center justify-center text-xl">🎣</div>
   </div>
 
   <!-- TABS -->
@@ -69,10 +79,13 @@
 
     <div class="bg-gray-700 p-3 rounded text-center mb-4">
       <p id="current-status" class="text-green-400 font-bold">Stopped</p>
-      <p id="time-to-bite" class="text-gray-300 text-sm">Waiting for a bite...</p>
+      <p id="time-to-bite" class="text-gray-300 text-sm">
+        Waiting for a bite...
+      </p>
     </div>
 
-    <button id="reel-button" class="hidden w-full py-3 bg-green-500 text-black font-bold rounded mb-4"
+    <button id="reel-button"
+            class="hidden w-full py-3 bg-green-500 text-black font-bold rounded mb-4"
             onclick="reelIn()">Reel In!</button>
 
     <div>
@@ -101,9 +114,7 @@
 </div>
 
 <script>
-/* ===========================
-   PROFILE SYSTEM (FIXED)
-=========================== */
+/* STORAGE: load profile */
 function loadProfile() {
   const raw = localStorage.getItem("carpRunProfile");
   if (!raw) return null;
@@ -112,10 +123,7 @@ function loadProfile() {
 
 let profile = loadProfile();
 
-function saveProfile() {
-  localStorage.setItem("carpRunProfile", JSON.stringify(profile));
-}
-
+/* Update UI stats */
 function updateProfileUI() {
   document.getElementById("header-username").textContent = profile.username;
   document.getElementById("stat-biggest-carp").textContent = profile.stats.biggestCarpKg.toFixed(1);
@@ -124,12 +132,19 @@ function updateProfileUI() {
   document.getElementById("stat-total-weight").textContent = profile.stats.totalWeightKg.toFixed(1);
 }
 
+/* Save profile */
+function saveProfile() {
+  localStorage.setItem("carpRunProfile", JSON.stringify(profile));
+}
+
+/* Show startup screen IF needed */
 function showStartup() {
   if (!profile) {
     document.getElementById("startup-overlay").classList.remove("hidden");
   }
 }
 
+/* Save profile button */
 document.getElementById("save-profile-btn").onclick = () => {
   let name = document.getElementById("profile-name-input").value.trim();
   if (!name) { alert("Enter a username."); return; }
@@ -146,12 +161,16 @@ document.getElementById("save-profile-btn").onclick = () => {
 
   saveProfile();
   updateProfileUI();
+
   document.getElementById("startup-overlay").classList.add("hidden");
 };
 
-/* ===========================
-   FISHING LOGIC
-=========================== */
+/* CONTINUE button = bypass overlay */
+document.getElementById("continue-btn").onclick = () => {
+  document.getElementById("startup-overlay").classList.add("hidden");
+};
+
+/* FISHING SYSTEM */
 let isFishing = false;
 let countdownValue = 0;
 let biteTimeout = null;
@@ -160,8 +179,8 @@ let catchTimer = null;
 const alarmSound = new Audio("./assets/CarpRunSound001.mp3");
 alarmSound.loop = true;
 
-function startAlarm(){alarmSound.currentTime=0;alarmSound.play().catch(()=>{});}
-function stopAlarm(){alarmSound.pause();alarmSound.currentTime=0;}
+function startAlarm(){ alarmSound.currentTime=0; alarmSound.play().catch(()=>{}); }
+function stopAlarm(){ alarmSound.pause(); alarmSound.currentTime=0; }
 
 function toggleFishing() {
   if (isFishing) return stopFishing();
@@ -243,9 +262,7 @@ function applyStats(f){
   updateProfileUI();
 }
 
-/* ===========================
-   TABS
-=========================== */
+/* TABS */
 document.getElementById("tab-fishing").onclick = ()=>showTab("fishing");
 document.getElementById("tab-profile").onclick = ()=>showTab("profile");
 document.getElementById("tab-leaderboard").onclick = ()=>showTab("leaderboard");
@@ -254,7 +271,7 @@ function showTab(tab){
   document.querySelectorAll("[id^=screen]").forEach(e=>e.classList.add("hidden"));
   document.getElementById("screen-"+tab).classList.remove("hidden");
 
-  document.querySelectorAll("[id^=tab-]").forEach(e=>{
+  document.querySelectorAll("[id^=tab]").forEach(e=>{
     e.classList.remove("tab-active");
     e.classList.add("tab-inactive");
   });
@@ -262,9 +279,7 @@ function showTab(tab){
   document.getElementById("tab-"+tab).classList.add("tab-active");
 }
 
-/* ===========================
-   INIT
-=========================== */
+/* INIT */
 window.onload = () => {
   if (profile) updateProfileUI();
   showStartup();
