@@ -18,11 +18,19 @@
             margin: 0;
             padding: 0;
         }
+
         #app-container {
             max-width: 600px;
             margin: auto;
             padding: 20px;
         }
+
+        .logo {
+            width: 200px;
+            display: block;
+            margin: 0 auto 25px auto;
+        }
+
         .alarm-flash {
             animation: flash 0.25s infinite alternate;
             background-color: #ff3333 !important;
@@ -31,15 +39,11 @@
             from { box-shadow: 0 0 10px red; }
             to   { box-shadow: 0 0 30px red; }
         }
+
         .fish-image {
             width: 100%;
             border-radius: 1rem;
             margin-top: 10px;
-        }
-        .logo {
-            width: 200px;
-            display: block;
-            margin: 0 auto 20px auto;
         }
     </style>
 </head>
@@ -47,10 +51,11 @@
 <body>
 <div id="app-container">
 
+    <!-- Logo Always -->
     <img src="assets/logo.png" class="logo" />
 
-    <!-- CREATE PROFILE SCREEN -->
-    <div id="profile-screen" class="text-center mt-10">
+    <!-- CREATE PROFILE -->
+    <div id="profile-screen" class="text-center mt-12">
         <h1 class="text-3xl font-bold mb-4">Create Profile</h1>
         <input id="profileNameInput"
                class="w-full p-3 rounded text-black mb-4"
@@ -61,7 +66,7 @@
         </button>
     </div>
 
-    <!-- MAIN GAME SCREEN -->
+    <!-- GAME SCREEN -->
     <div id="game-screen" class="hidden">
 
         <img src="assets/logo.png" class="logo" />
@@ -98,8 +103,10 @@
     <!-- LEADERBOARD -->
     <div id="leaderboard-screen" class="hidden">
         <img src="assets/logo.png" class="logo" />
+
         <h2 class="text-3xl font-bold text-center mb-4">World Leaderboard</h2>
         <div id="leaderboardList" class="p-4 bg-gray-800 rounded-lg"></div>
+
         <div class="text-center mt-6">
             <button onclick="closeLeaderboard()"
                     class="bg-blue-500 px-6 py-3 rounded-lg font-bold hover:bg-blue-600">
@@ -141,23 +148,22 @@ auth.onAuthStateChanged(user => {
     loadProfile();
 });
 
-/* Load profile */
+/* LOAD PROFILE */
 async function loadProfile() {
     const doc = await profileRef.get();
     if (doc.exists) {
         document.getElementById("profile-screen").classList.add("hidden");
         document.getElementById("game-screen").classList.remove("hidden");
-        updateUI();
     }
 }
 
-/* Save profile */
+/* SAVE PROFILE */
 async function saveProfile() {
     const name = document.getElementById("profileNameInput").value.trim();
     if (!name) return;
 
     await profileRef.set({
-        name: name,
+        name,
         totalWeightKg: 0,
         biggestCarpKg: 0,
         biggestCommonKg: 0,
@@ -186,12 +192,12 @@ async function showLeaderboard() {
         .get();
 
     list.innerHTML = "";
-    snap.forEach(doc => {
-        const d = doc.data();
+
+    snap.forEach(d => {
+        const p = d.data();
         list.innerHTML += `
             <div class="p-3 border-b border-gray-600">
-                <span class="font-bold">${d.name}</span> —
-                PB: ${d.biggestCarpKg || 0} kg
+                <strong>${p.name}</strong> — PB: ${p.biggestCarpKg || 0} kg
             </div>
         `;
     });
@@ -209,42 +215,41 @@ let countdownTimer = null;
 let countdownValue = 0;
 
 function toggleFishing() {
-    if (isFishing) {
-        stopFishing();
-    } else {
-        startFishing();
-    }
+    if (isFishing) stopFishing();
+    else startFishing();
 }
 
-/* Start fishing */
+/* START FISHING */
 function startFishing() {
     isFishing = true;
     document.getElementById("toggle-fish-btn").textContent = "Stop Fishing";
-    document.getElementById("statusText").textContent = "Lines are in! Waiting...";
+    document.getElementById("statusText").textContent = "Lines are in the water...";
     document.getElementById("catchDisplay").innerHTML = "";
 
-    const min = 20000;      // 20 seconds
-    const max = 1800000;    // 30 minutes
+    const min = 20000;     // 20 seconds
+    const max = 1800000;   // 30 minutes
     const biteTime = Math.floor(Math.random() * (max - min)) + min;
 
     biteTimeout = setTimeout(startBite, biteTime);
 
     document.getElementById("timeToBite").textContent =
-        "A carp could pick up the bait any moment...";
+        "Waiting for a carp to pick up the bait...";
 }
 
-/* Stop fishing */
+/* STOP FISHING */
 function stopFishing() {
     isFishing = false;
     clearTimeout(biteTimeout);
     clearInterval(countdownTimer);
+
+    document.body.classList.remove("alarm-flash");
 
     document.getElementById("toggle-fish-btn").textContent = "Start Fishing";
     document.getElementById("statusText").textContent = "Fishing stopped.";
     document.getElementById("reelButton").classList.add("hidden");
 }
 
-/* Bite occurs */
+/* BITE! */
 function startBite() {
     if (!isFishing) return;
 
@@ -253,8 +258,8 @@ function startBite() {
     document.body.classList.add("alarm-flash");
 
     countdownValue = 15;
-    document.getElementById("reelButton").classList.remove("hidden");
     document.getElementById("reelButton").textContent = `Reel In! (${countdownValue}s)`;
+    document.getElementById("reelButton").classList.remove("hidden");
 
     countdownTimer = setInterval(() => {
         countdownValue--;
@@ -270,7 +275,7 @@ function startBite() {
     }, 1000);
 }
 
-/* Reel in */
+/* REEL IN */
 async function reelIn() {
     clearInterval(countdownTimer);
     document.body.classList.remove("alarm-flash");
@@ -281,51 +286,48 @@ async function reelIn() {
     document.getElementById("statusText").textContent =
         `🎣 You caught a ${carp.weightKg} kg (${carp.weightLbs} lb) ${carp.species}!`;
 
-    document.getElementById("catchDisplay").innerHTML = `
-        <img src="${carp.image}" class="fish-image" />
-    `;
+    document.getElementById("catchDisplay").innerHTML =
+        `<img src="${carp.image}" class="fish-image" />`;
 
     await updateStats(carp);
 
     stopFishing();
 }
 
-/* Update Firestore stats */
+/* UPDATE STATS */
 async function updateStats(carp) {
     const doc = await profileRef.get();
     if (!doc.exists) return;
 
     const p = doc.data();
 
-    const totalWeight = (p.totalWeightKg || 0) + parseFloat(carp.weightKg);
-
-    const updated = {
-        totalWeightKg: totalWeight,
+    const updates = {
+        totalWeightKg: (p.totalWeightKg || 0) + parseFloat(carp.weightKg),
         biggestCarpKg: Math.max(p.biggestCarpKg || 0, carp.weightKg)
     };
 
     if (carp.species === "Common Carp")
-        updated.biggestCommonKg = Math.max(p.biggestCommonKg || 0, carp.weightKg);
+        updates.biggestCommonKg = Math.max(p.biggestCommonKg || 0, carp.weightKg);
 
     if (carp.species === "Mirror Carp")
-        updated.biggestMirrorKg = Math.max(p.biggestMirrorKg || 0, carp.weightKg);
+        updates.biggestMirrorKg = Math.max(p.biggestMirrorKg || 0, carp.weightKg);
 
     if (carp.species === "Fully Scaled Carp")
-        updated.biggestFullyScaledKg = Math.max(p.biggestFullyScaledKg || 0, carp.weightKg);
+        updates.biggestFullyScaledKg = Math.max(p.biggestFullyScaledKg || 0, carp.weightKg);
 
     if (carp.species === "Ghost Carp")
-        updated.biggestGhostKg = Math.max(p.biggestGhostKg || 0, carp.weightKg);
+        updates.biggestGhostKg = Math.max(p.biggestGhostKg || 0, carp.weightKg);
 
     if (carp.species === "Koi Carp")
-        updated.biggestKoiKg = Math.max(p.biggestKoiKg || 0, carp.weightKg);
+        updates.biggestKoiKg = Math.max(p.biggestKoiKg || 0, carp.weightKg);
 
     if (carp.species === "Catfish")
-        updated.catfishCount = (p.catfishCount || 0) + 1;
+        updates.catfishCount = (p.catfishCount || 0) + 1;
 
-    await profileRef.update(updated);
+    await profileRef.update(updates);
 }
 
-/* Get fish image */
+/* FISH IMAGE LOADER */
 function getFishImage(species, kg) {
     if (species === "Catfish") return "fish/catfish.png";
 
@@ -335,17 +337,18 @@ function getFishImage(species, kg) {
     return `fish/${species}-monster.png`;
 }
 
-/* Weighted random */
+/* WEIGHTED RANDOM */
 function weightedRandom(weights) {
     const total = Object.values(weights).reduce((a, b) => a + b, 0);
     let r = Math.random() * total;
+
     for (const [key, value] of Object.entries(weights)) {
         if (r < value) return key;
         r -= value;
     }
 }
 
-/* Generate carp details */
+/* GENERATE CARP */
 function generateCarpDetails() {
     const speciesWeights = {
         "Common Carp": 25,
@@ -359,7 +362,6 @@ function generateCarpDetails() {
     const species = weightedRandom(speciesWeights);
 
     let kg;
-
     const roll = Math.random();
 
     if (species === "Catfish") {
