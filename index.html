@@ -6,334 +6,284 @@
 
   <title>Carp Run Alarm Simulator</title>
 
-  <!-- PWA Meta -->
   <meta name="theme-color" content="#111827" />
-  <meta name="description" content="Simulate real carp fishing runs with authentic bite alarms and random carp runs." />
+  <meta name="description" content="Carp fishing alarm simulator." />
 
-  <!-- Manifest (GitHub Pages path) -->
   <link rel="manifest" href="./manifest.webmanifest" />
-
-  <!-- Icons -->
   <link rel="apple-touch-icon" href="./assets/icon-192.png" />
-  <link rel="icon" type="image/png" sizes="192x192" href="./assets/icon-192.png" />
-  <link rel="icon" type="image/png" sizes="512x512" href="./assets/icon-512.png" />
 
-  <!-- Apple PWA -->
-  <meta name="apple-mobile-web-app-capable" content="yes" />
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-  <meta name="apple-mobile-web-app-title" content="Carp Run" />
-
-  <!-- Tailwind + Fonts -->
   <script src="https://cdn.tailwindcss.com"></script>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap" rel="stylesheet" />
-
   <style>
-    body {
-      font-family: 'Inter', sans-serif;
-      background-color: #000;
-      margin: 0;
-      padding: 0;
-    }
-
-    .alarm-flash {
-      animation: flash 0.3s infinite alternate;
-      background-color: #ff3333 !important;
-      color: #fff !important;
-    }
-
-    @keyframes flash {
-      from { box-shadow: 0 0 15px #ff3333; }
-      to   { box-shadow 0 0 30px #ff0000; }
-    }
-
-    .tab-active {
-      background-color: #3b82f6;
-      color: white;
-    }
-
-    .tab-inactive {
-      background-color: #1f2937;
-      color: #e5e7eb;
-    }
-
-    /* Startup overlay */
+    body { background: #000; font-family: Inter, sans-serif; }
     #startup-overlay {
-      position: fixed;
-      inset: 0;
-      background: rgba(0,0,0,0.9);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      z-index: 100;
+      position: fixed; inset: 0; background: rgba(0,0,0,.9);
+      display: flex; align-items: center; justify-content: center; z-index: 100;
     }
+    .alarm-flash { animation: flash .3s infinite alternate; background:#ff3333!important; }
+    @keyframes flash { from{box-shadow:0 0 10px red;} to{box-shadow:0 0 25px red;} }
+    .tab-active { background:#3b82f6; color:#fff; }
+    .tab-inactive { background:#1f2937; color:#ccc; }
   </style>
 </head>
 
-<body class="bg-black text-white flex justify-center items-center min-h-screen p-4">
-  <div id="app-container" class="bg-gray-900 border-2 border-gray-700 rounded-xl p-4 sm:p-6 w-full max-w-lg">
-    
-    <!-- STARTUP PROFILE OVERLAY -->
-    <div id="startup-overlay" class="hidden">
-      <div class="bg-gray-900 border border-gray-700 rounded-xl p-6 w-full max-w-sm text-center">
-        <h1 class="text-2xl font-extrabold mb-4">Create Your Angler Profile</h1>
-        <p class="text-sm text-gray-300 mb-4">Choose a username and avatar to start fishing.</p>
+<body class="p-4 text-white flex justify-center min-h-screen">
 
-        <label class="block text-left text-sm mb-1" for="profile-username">Username</label>
-        <input id="profile-username" type="text"
-               class="w-full mb-4 px-3 py-2 rounded-md bg-gray-800 border border-gray-700 text-white"
+  <div id="app-container" class="max-w-lg w-full bg-gray-900 p-4 rounded-xl border border-gray-700">
+
+    <!-- PROFILE SETUP -->
+    <div id="startup-overlay" class="hidden">
+      <div class="bg-gray-800 p-6 rounded-xl w-full max-w-sm text-center border border-gray-700">
+        <h1 class="text-2xl font-bold mb-4">Create Your Profile</h1>
+
+        <label class="block text-left text-sm mb-1">Username</label>
+        <input id="profile-username"
+               class="w-full mb-4 p-2 rounded bg-gray-700 border border-gray-600"
                placeholder="CarpKing123" />
 
-        <p class="text-left text-sm mb-2">Choose your avatar:</p>
-        <div id="avatar-list" class="grid grid-cols-4 gap-2 mb-4">
-          <!-- Avatars rendered by JS -->
-        </div>
-
         <button id="save-profile-btn"
-                class="w-full mt-2 px-4 py-2 rounded-lg bg-blue-500 hover:bg-blue-600 font-bold">
-          Save Profile & Start
+                class="w-full py-2 bg-blue-600 rounded font-bold hover:bg-blue-700">
+          Save & Start
         </button>
       </div>
     </div>
 
     <!-- HEADER -->
-    <div class="flex items-center justify-between mb-4">
-      <div class="flex items-center gap-3">
-        <img src="./assets/logo.png" alt="Carp Run Logo" class="w-12 h-12 object-contain" />
-        <div class="text-left">
-          <p class="text-xs text-gray-400">Logged in as</p>
-          <p id="header-username" class="text-sm font-bold">Guest</p>
-        </div>
+    <div class="flex justify-between items-center mb-4">
+      <div>
+        <p class="text-xs text-gray-400">Logged in as</p>
+        <p id="header-username" class="font-bold">Guest</p>
       </div>
       <div id="header-avatar"
-           class="w-10 h-10 flex items-center justify-center rounded-full bg-blue-600 text-xl">
-        🎣
-      </div>
+           class="w-10 h-10 bg-blue-600 rounded-full flex items-center justify-center text-xl">🎣</div>
     </div>
 
     <!-- TABS -->
-    <div class="flex mb-4 gap-2">
-      <button id="tab-fishing" class="flex-1 py-2 rounded-lg text-sm font-bold tab-active">Fishing</button>
-      <button id="tab-profile" class="flex-1 py-2 rounded-lg text-sm font-bold tab-inactive">Profile</button>
-      <button id="tab-leaderboard" class="flex-1 py-2 rounded-lg text-sm font-bold tab-inactive">Leaderboard</button>
+    <div class="flex gap-2 mb-3">
+      <button id="tab-fishing" class="flex-1 py-2 rounded tab-active">Fishing</button>
+      <button id="tab-profile" class="flex-1 py-2 rounded tab-inactive">Profile</button>
+      <button id="tab-leaderboard" class="flex-1 py-2 rounded tab-inactive">Leaderboard</button>
     </div>
 
     <!-- FISHING SCREEN -->
     <div id="screen-fishing">
-      <div class="text-center mb-4">
-        <button id="toggle-fishing-button"
-          class="px-6 py-2 text-lg font-bold rounded-lg bg-yellow-500 text-gray-900 hover:bg-yellow-400 transition"
-          onclick="toggleFishing()">Start Fishing</button>
-      </div>
+      <button id="toggle-fishing-button"
+              class="w-full py-2 bg-yellow-500 text-black font-bold rounded mb-4"
+              onclick="toggleFishing()">Start Fishing</button>
 
-      <div id="status-display" class="bg-gray-700 p-4 mb-4 rounded-lg text-center">
-        <p id="current-status" class="text-lg font-bold text-green-400">Stopped</p>
-        <p id="time-to-bite" class="text-sm mt-1 text-gray-300">
-          Ready to cast your lines! The wait could be anywhere from 5 seconds to 1 minute.
-        </p>
+      <div class="bg-gray-700 p-3 rounded mb-4 text-center">
+        <p id="current-status" class="text-green-400 font-bold">Stopped</p>
+        <p id="time-to-bite" class="text-sm text-gray-300">Waiting for a bite...</p>
       </div>
 
       <button id="reel-button"
-        class="hidden w-full px-6 py-4 text-2xl font-bold rounded-xl bg-green-500 text-gray-900 hover:bg-green-400 transition mb-4"
-        onclick="reelIn()">Reel In! (15s left)</button>
+              class="hidden w-full py-3 bg-green-500 text-black text-xl font-bold rounded mb-4"
+              onclick="reelIn()">Reel In!</button>
 
-      <div id="last-catch-log" class="text-left">
-        <h2 class="text-xl font-bold mb-2 uppercase border-b border-blue-800 pb-1">Last Catch</h2>
-        <div id="log-content" class="bg-gray-800 rounded-lg p-4 border-l-4 border-blue-500">
-          <p class="text-gray-300">No successful catches yet. Tight lines!</p>
+      <div id="last-catch-log">
+        <h2 class="font-bold mb-2 border-b border-blue-800">Last Catch</h2>
+        <div id="log-content" class="bg-gray-800 p-3 rounded border-l-4 border-blue-500">
+          <p>No catches yet.</p>
         </div>
       </div>
     </div>
 
     <!-- PROFILE SCREEN -->
     <div id="screen-profile" class="hidden">
-      <h2 class="text-2xl font-bold mb-3">Your Profile</h2>
-      <div class="flex items-center gap-3 mb-4">
-        <div id="profile-avatar"
-             class="w-12 h-12 flex items-center justify-center rounded-full bg-blue-600 text-2xl">
-          🎣
-        </div>
-        <div>
-          <p class="text-xs text-gray-400">Angler</p>
-          <p id="profile-name" class="text-lg font-bold">Guest</p>
-        </div>
-      </div>
+      <h2 class="text-xl font-bold mb-3">Your Stats</h2>
 
-      <div class="bg-gray-800 rounded-lg p-4 border border-gray-700 mb-4">
-        <h3 class="font-bold mb-2 text-sm uppercase text-gray-300">Personal Bests</h3>
-        <p class="text-sm text-gray-200">Biggest carp: <span id="stat-biggest-carp">0</span> kg</p>
-        <p class="text-sm text-gray-200">Biggest common: <span id="stat-biggest-common">0</span> kg</p>
-        <p class="text-sm text-gray-200">Biggest mirror: <span id="stat-biggest-mirror">0</span> kg</p>
-        <p class="text-sm text-gray-200 mt-2">Total weight caught: <span id="stat-total-weight">0</span> kg</p>
-      </div>
-
-      <p class="text-xs text-gray-500">Stats are saved on this device. World leaderboard coming soon.</p>
+      <p class="mb-2">Biggest carp: <span id="stat-biggest-carp">0</span> kg</p>
+      <p class="mb-2">Biggest common: <span id="stat-biggest-common">0</span> kg</p>
+      <p class="mb-2">Biggest mirror: <span id="stat-biggest-mirror">0</span> kg</p>
+      <p class="mb-2">Total weight caught: <span id="stat-total-weight">0</span> kg</p>
     </div>
 
     <!-- LEADERBOARD SCREEN -->
     <div id="screen-leaderboard" class="hidden">
-      <h2 class="text-2xl font-bold mb-3">World Leaderboard</h2>
-      <div class="bg-gray-800 rounded-lg p-4 border border-gray-700 mb-3">
-        <p class="text-sm text-gray-200 mb-2">
-          Online leaderboard will be live once backend is connected.
-        </p>
-        <p class="text-xs text-gray-400">For now, track your catches in your Profile.</p>
-      </div>
+      <h2 class="text-xl font-bold mb-2">Leaderboard</h2>
+      <p class="text-sm text-gray-400">Online leaderboard coming soon.</p>
     </div>
 
-    <!-- Footer -->
-    <div class="mt-4 text-center">
-      <a href="privacy.html" class="text-xs text-gray-400 underline" target="_blank">Privacy Policy</a>
-    </div>
   </div>
 
-  <!-- Install button -->
-  <button id="install-btn"
-    class="hidden fixed bottom-4 left-1/2 -translate-x-1/2 bg-blue-500 text-white font-bold px-5 py-3 rounded-lg shadow-lg hover:bg-blue-600 z-50">
-    Install Carp Run App
-  </button>
+<script>
+/* PROFILE SYSTEM */
+let profile = loadProfile();
 
-  <script>
-    /* ==============================
-       SERVICE WORKER
-    ===============================*/
-    if ('serviceWorker' in navigator) {
-      window.addEventListener('load', () => {
-        navigator.serviceWorker.register('./service-worker.js');
-      });
+function loadProfile() {
+  const raw = localStorage.getItem("carpRunProfile");
+  if (!raw) return { username: "Guest", stats: { biggestCarpKg:0, biggestCommonKg:0, biggestMirrorKg:0, totalWeightKg:0 }};
+  return JSON.parse(raw);
+}
+
+function saveProfile() {
+  localStorage.setItem("carpRunProfile", JSON.stringify(profile));
+  updateProfileUI();
+}
+
+function updateProfileUI() {
+  document.getElementById("header-username").textContent = profile.username;
+  document.getElementById("stat-biggest-carp").textContent = profile.stats.biggestCarpKg.toFixed(1);
+  document.getElementById("stat-biggest-common").textContent = profile.stats.biggestCommonKg.toFixed(1);
+  document.getElementById("stat-biggest-mirror").textContent = profile.stats.biggestMirrorKg.toFixed(1);
+  document.getElementById("stat-total-weight").textContent = profile.stats.totalWeightKg.toFixed(1);
+}
+
+/* STARTUP SCREEN */
+function showStartupScreen() {
+  if (!profile || profile.username === "Guest") {
+    document.getElementById("startup-overlay").classList.remove("hidden");
+  }
+}
+
+document.getElementById("save-profile-btn").addEventListener("click", () => {
+  let name = document.getElementById("profile-username").value.trim();
+  if (!name) { alert("Please enter a username."); return; }
+
+  profile.username = name;
+  saveProfile();
+
+  document.getElementById("startup-overlay").classList.add("hidden");
+});
+
+/* FISHING LOGIC */
+let isFishing = false;
+let biteTimeout = null;
+let catchTimer = null;
+let countdownValue = 0;
+
+const alarmSound = new Audio("./assets/CarpRunSound001.mp3");
+alarmSound.loop = true;
+
+function startAlarmSound(){ alarmSound.currentTime=0; alarmSound.play().catch(()=>{}); }
+function stopAlarmSound(){ alarmSound.pause(); alarmSound.currentTime=0; }
+
+function toggleFishing() {
+  if (isFishing) return stopFishing();
+  startFishing();
+}
+
+function startFishing() {
+  isFishing = true;
+  document.getElementById("toggle-fishing-button").textContent = "Stop Fishing";
+  biteTimeout = setTimeout(startBite, getNextBiteTime());
+}
+
+function stopFishing() {
+  isFishing = false;
+  clearTimeout(biteTimeout);
+  clearInterval(catchTimer);
+  stopAlarmSound();
+  document.getElementById("toggle-fishing-button").textContent = "Start Fishing";
+}
+
+function getNextBiteTime() {
+  return Math.floor(Math.random() * (60000 - 5000 + 1)) + 5000;
+}
+
+function startBite() {
+  if (!isFishing) return;
+
+  countdownValue = 15;
+  startAlarmSound();
+  document.getElementById("reel-button").classList.remove("hidden");
+
+  catchTimer = setInterval(() => {
+    countdownValue--;
+    document.getElementById("reel-button").textContent = `Reel In! (${countdownValue}s)`;
+
+    if (countdownValue <= 0) {
+      clearInterval(catchTimer);
+      document.getElementById("reel-button").classList.add("hidden");
+      stopAlarmSound();
+      if (isFishing) setTimeout(startFishing, 3000);
     }
+  }, 1000);
+}
 
-    /* ==============================
-       PROFILE SYSTEM
-    ===============================*/
-    let profile = loadProfile();
+function reelIn() {
+  clearInterval(catchTimer);
+  stopAlarmSound();
+  document.getElementById("reel-button").classList.add("hidden");
 
-    const defaultProfile = {
-      username: 'Guest',
-      avatar: '🎣',
-      stats: {
-        biggestCarpKg: 0,
-        biggestCommonKg: 0,
-        biggestMirrorKg: 0,
-        totalWeightKg: 0
-      }
-    };
+  const fish = generateCatch();
+  applyStats(fish);
+  displayCatch(fish);
 
-    function loadProfile() {
-      try {
-        const raw = localStorage.getItem("carpRunProfile");
-        if (!raw) return { ...defaultProfile };
-        return JSON.parse(raw);
-      } catch {
-        return { ...defaultProfile };
-      }
-    }
+  if (isFishing) setTimeout(startFishing, 3000);
+}
 
-    function saveProfile() {
-      localStorage.setItem("carpRunProfile", JSON.stringify(profile));
-      updateProfileUI();
-    }
+function generateCatch() {
+  const speciesList = ["Common Carp", "Mirror Carp", "Ghost Carp", "Koi Carp", "Catfish"];
+  const species = speciesList[Math.floor(Math.random() * speciesList.length)];
 
-    /* ==============================
-       DOM ELEMENTS
-    ===============================*/
-    const startupOverlay = document.getElementById("startup-overlay");
-    const profileUsernameInput = document.getElementById("profile-username");
-    const avatarList = document.getElementById("avatar-list");
-    const saveProfileBtn = document.getElementById("save-profile-btn");
+  const weight = (Math.random() * (55 - 4) + 4).toFixed(1);
+  return { species, weightKg: parseFloat(weight), time: new Date().toLocaleString() };
+}
 
-    const headerUsername = document.getElementById("header-username");
-    const headerAvatar = document.getElementById("header-avatar");
-    const profileName = document.getElementById("profile-name");
-    const profileAvatar = document.getElementById("profile-avatar");
+function applyStats(c) {
+  const w = c.weightKg;
 
-    const statBiggestCarp = document.getElementById("stat-biggest-carp");
-    const statBiggestCommon = document.getElementById("stat-biggest-common");
-    const statBiggestMirror = document.getElementById("stat-biggest-mirror");
-    const statTotalWeight = document.getElementById("stat-total-weight");
+  profile.stats.totalWeightKg += w;
 
-    /* ==============================
-       AVATAR SETUP
-    ===============================*/
-    const avatarOptions = ['🎣', '🐟', '🐡', '🐠', '🧢', '🧔', '😎', '🐱'];
-    let selectedAvatar = profile.avatar;
+  if (c.species !== "Catfish" && w > profile.stats.biggestCarpKg) {
+    profile.stats.biggestCarpKg = w;
+  }
+  if (c.species === "Common Carp" && w > profile.stats.biggestCommonKg) {
+    profile.stats.biggestCommonKg = w;
+  }
+  if (c.species === "Mirror Carp" && w > profile.stats.biggestMirrorKg) {
+    profile.stats.biggestMirrorKg = w;
+  }
 
-    function renderAvatars() {
-      avatarList.innerHTML = "";
-      avatarOptions.forEach(av => {
-        const btn = document.createElement("button");
-        btn.type = "button";
-        btn.textContent = av;
-        btn.className =
-          "w-12 h-12 flex items-center justify-center rounded-full text-2xl border " +
-          (av === selectedAvatar
-            ? "bg-blue-600 border-blue-400"
-            : "bg-gray-800 border-gray-600");
+  saveProfile();
+}
 
-        btn.onclick = () => {
-          selectedAvatar = av;
-          renderAvatars();
-        };
+function displayCatch(c) {
+  document.getElementById("log-content").innerHTML = `
+    <p class="text-yellow-400 text-xl font-bold">${c.weightKg} kg</p>
+    <p class="font-bold">${c.species}</p>
+    <p class="text-gray-400 text-sm">${c.time}</p>
+  `;
+}
 
-        avatarList.appendChild(btn);
-      });
-    }
+/* TABS */
+document.getElementById("tab-fishing").onclick = () => showTab("fishing");
+document.getElementById("tab-profile").onclick = () => showTab("profile");
+document.getElementById("tab-leaderboard").onclick = () => showTab("leaderboard");
 
-    /* ==============================
-       FIXED: SAVE PROFILE BUTTON
-    ===============================*/
-    saveProfileBtn.addEventListener("click", () => {
-      let name = profileUsernameInput.value.trim();
+function showTab(name) {
+  document.getElementById("screen-fishing").classList.add("hidden");
+  document.getElementById("screen-profile").classList.add("hidden");
+  document.getElementById("screen-leaderboard").classList.add("hidden");
 
-      if (!name) {
-        alert("Please enter a username.");
-        return;
-      }
+  document.getElementById("tab-fishing").classList.remove("tab-active");
+  document.getElementById("tab-profile").classList.remove("tab-active");
+  document.getElementById("tab-leaderboard").classList.remove("tab-active");
 
-      profile.username = name;
-      profile.avatar = selectedAvatar;
-      saveProfile();
+  document.getElementById("tab-fishing").classList.add("tab-inactive");
+  document.getElementById("tab-profile").classList.add("tab-inactive");
+  document.getElementById("tab-leaderboard").classList.add("tab-inactive");
 
-      startupOverlay.classList.add("hidden");
-    });
+  if (name === "fishing") {
+    document.getElementById("screen-fishing").classList.remove("hidden");
+    document.getElementById("tab-fishing").classList.add("tab-active");
+  }
+  if (name === "profile") {
+    document.getElementById("screen-profile").classList.remove("hidden");
+    document.getElementById("tab-profile").classList.add("tab-active");
+  }
+  if (name === "leaderboard") {
+    document.getElementById("screen-leaderboard").classList.remove("hidden");
+    document.getElementById("tab-leaderboard").classList.add("tab-active");
+  }
+}
 
-    /* ==============================
-       PROFILE UI UPDATE
-    ===============================*/
-    function updateProfileUI() {
-      headerUsername.textContent = profile.username;
-      headerAvatar.textContent = profile.avatar;
+/* INIT */
+window.onload = () => {
+  updateProfileUI();
+  showStartupScreen();
+};
+</script>
 
-      profileName.textContent = profile.username;
-      profileAvatar.textContent = profile.avatar;
-
-      statBiggestCarp.textContent = profile.stats.biggestCarpKg.toFixed(1);
-      statBiggestCommon.textContent = profile.stats.biggestCommonKg.toFixed(1);
-      statBiggestMirror.textContent = profile.stats.biggestMirrorKg.toFixed(1);
-      statTotalWeight.textContent = profile.stats.totalWeightKg.toFixed(1);
-    }
-
-    /* ==============================
-       STARTUP LOGIC
-    ===============================*/
-    function showStartupIfNeeded() {
-      if (!profile || profile.username === "Guest") {
-        profileUsernameInput.value = "";
-        selectedAvatar = profile.avatar || "🎣";
-        renderAvatars();
-        startupOverlay.classList.remove("hidden");
-      } else {
-        startupOverlay.classList.add("hidden");
-      }
-    }
-
-    /* ==============================
-       INITIALIZE
-    ===============================*/
-    window.onload = () => {
-      updateProfileUI();
-      renderAvatars();
-      showStartupIfNeeded();
-    };
-  </script>
 </body>
 </html>
