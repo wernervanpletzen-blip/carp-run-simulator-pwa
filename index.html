@@ -1,178 +1,121 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Carp Run Alarm Simulator</title>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Carp Run Simulator</title>
 
-  <meta name="theme-color" content="#111827" />
-  <link rel="manifest" href="./manifest.webmanifest" />
-  <script src="https://cdn.tailwindcss.com"></script>
+    <meta name="theme-color" content="#111827" />
+    <link rel="manifest" href="manifest.json" />
 
-  <style>
-    body {
-      background:#000;
-      font-family: Inter, system-ui, sans-serif;
-      margin:0;
-      padding:0;
-    }
-    #startup-overlay {
-      position:fixed;
-      inset:0;
-      background:rgba(0,0,0,0.9);
-      display:flex;
-      justify-content:center;
-      align-items:center;
-      z-index:999999;
-    }
-    .tab-active { background:#3b82f6; color:#fff; }
-    .tab-inactive { background:#1f2937; color:#ccc; }
+    <script src="https://cdn.tailwindcss.com"></script>
 
-    /* PB Popup Styles */
-    #pb-popup {
-      backdrop-filter: blur(3px);
-    }
-
-    @keyframes pbFade {
-      0% { opacity: 0; transform: scale(0.7); }
-      10% { opacity: 1; transform: scale(1); }
-      90% { opacity: 1; transform: scale(1); }
-      100% { opacity: 0; transform: scale(0.7); }
-    }
-    .animate-pb-popup {
-      animation: pbFade 2.8s ease forwards;
-    }
-  </style>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background: black;
+            color: white;
+            margin: 0;
+            padding: 0;
+        }
+        #app-container {
+            max-width: 600px;
+            margin: auto;
+            padding: 20px;
+        }
+        .alarm-flash {
+            animation: flash 0.25s infinite alternate;
+            background-color: #ff3333 !important;
+        }
+        @keyframes flash {
+            from { box-shadow: 0 0 10px red; }
+            to   { box-shadow: 0 0 30px red; }
+        }
+        .fish-image {
+            width: 100%;
+            border-radius: 1rem;
+            margin-top: 10px;
+        }
+        .logo {
+            width: 200px;
+            display: block;
+            margin: 0 auto 20px auto;
+        }
+    </style>
 </head>
 
-<body class="p-4 text-white flex justify-center min-h-screen">
+<body>
+<div id="app-container">
 
-<!-- PB POPUP -->
-<div id="pb-popup" class="fixed inset-0 hidden items-center justify-center z-[9999]">
-  <div class="bg-black/80 px-6 py-4 rounded-xl text-center border border-yellow-400 shadow-lg animate-pb-popup">
-    <p id="pb-text" class="text-yellow-300 text-2xl font-extrabold drop-shadow-lg"></p>
-  </div>
+    <img src="assets/logo.png" class="logo" />
+
+    <!-- CREATE PROFILE SCREEN -->
+    <div id="profile-screen" class="text-center mt-10">
+        <h1 class="text-3xl font-bold mb-4">Create Profile</h1>
+        <input id="profileNameInput"
+               class="w-full p-3 rounded text-black mb-4"
+               placeholder="Enter your name" />
+        <button onclick="saveProfile()"
+                class="bg-blue-500 px-6 py-3 rounded-lg font-bold hover:bg-blue-600">
+            Save Profile
+        </button>
+    </div>
+
+    <!-- MAIN GAME SCREEN -->
+    <div id="game-screen" class="hidden">
+
+        <img src="assets/logo.png" class="logo" />
+
+        <h1 class="text-center text-2xl font-bold mt-2">Carp Run Simulator</h1>
+
+        <div class="text-center mt-4">
+            <button id="toggle-fish-btn"
+                    onclick="toggleFishing()"
+                    class="bg-yellow-500 text-black px-6 py-3 rounded-lg font-bold hover:bg-yellow-400">
+                Start Fishing
+            </button>
+        </div>
+
+        <p id="statusText" class="mt-4 text-center text-lg"></p>
+        <p id="timeToBite" class="text-center text-gray-400 text-sm"></p>
+
+        <button id="reelButton"
+                onclick="reelIn()"
+                class="hidden w-full bg-green-500 text-black font-bold text-xl px-6 py-4 rounded-lg mt-6">
+            Reel In!
+        </button>
+
+        <div id="catchDisplay" class="mt-6 text-center"></div>
+
+        <div class="text-center mt-8">
+            <button onclick="showLeaderboard()"
+                    class="bg-purple-600 px-6 py-3 rounded-lg font-bold hover:bg-purple-700">
+                View Leaderboard
+            </button>
+        </div>
+    </div>
+
+    <!-- LEADERBOARD -->
+    <div id="leaderboard-screen" class="hidden">
+        <img src="assets/logo.png" class="logo" />
+        <h2 class="text-3xl font-bold text-center mb-4">World Leaderboard</h2>
+        <div id="leaderboardList" class="p-4 bg-gray-800 rounded-lg"></div>
+        <div class="text-center mt-6">
+            <button onclick="closeLeaderboard()"
+                    class="bg-blue-500 px-6 py-3 rounded-lg font-bold hover:bg-blue-600">
+                Back
+            </button>
+        </div>
+    </div>
+
 </div>
 
-<div id="app-container" class="max-w-lg w-full bg-gray-900 p-4 rounded-xl border border-gray-700">
-
-  <!-- STARTUP PROFILE SCREEN -->
-  <div id="startup-overlay">
-    <div class="bg-gray-800 p-6 rounded-xl w-full max-w-sm border border-gray-700 text-center">
-
-      <!-- Startup Logo -->
-      <img src="./assets/logo.png"
-           class="w-28 h-28 mx-auto mb-4 rounded-lg object-contain border border-gray-600 shadow-xl" />
-
-      <h1 class="text-2xl font-bold mb-2">Create Profile</h1>
-      <p class="text-sm text-gray-300 mb-3">Choose a username to begin.</p>
-
-      <input id="profile-name-input" placeholder="Enter username"
-             class="w-full p-2 mb-4 bg-gray-700 border border-gray-600 rounded text-center" />
-
-      <button id="save-profile-btn" class="w-full py-2 bg-blue-600 font-bold rounded mb-3">
-        Save Profile & Start
-      </button>
-
-      <button id="continue-btn"
-              class="w-full py-2 bg-gray-600 font-bold rounded text-sm">
-        Continue as Guest
-      </button>
-    </div>
-  </div>
-
-  <!-- HEADER WITH BIGGER LOGO -->
-  <div class="flex flex-col items-center text-center mb-4 mt-2">
-    <img src="./assets/logo.png"
-         class="w-[110px] h-[110px] rounded-xl object-contain border border-gray-600 shadow-lg mb-2" />
-
-    <div>
-      <p class="text-xs text-gray-300">Logged in as</p>
-      <p id="header-username" class="text-lg font-bold">Guest</p>
-    </div>
-  </div>
-
-  <!-- TABS -->
-  <div class="flex gap-2 mb-3">
-    <button id="tab-fishing" class="flex-1 py-2 rounded tab-active">Fishing</button>
-    <button id="tab-profile" class="flex-1 py-2 rounded tab-inactive">Profile</button>
-    <button id="tab-leaderboard" class="flex-1 py-2 rounded tab-inactive">Leaderboard</button>
-  </div>
-
-  <!-- FISHING SCREEN -->
-  <div id="screen-fishing">
-    <button id="toggle-fishing-button"
-            class="w-full py-2 bg-yellow-500 text-black font-bold rounded mb-4">
-      Start Fishing
-    </button>
-
-    <div class="bg-gray-700 p-3 rounded text-center mb-4">
-      <p id="current-status" class="text-green-400 font-bold">Stopped</p>
-      <p id="time-to-bite" class="text-gray-300 text-sm">Waiting for a bite...</p>
-    </div>
-
-    <button id="reel-button"
-            class="hidden w-full py-3 bg-green-500 text-black font-bold rounded mb-4">
-      Reel In!
-    </button>
-
-    <div>
-      <h2 class="font-bold mb-2 border-b border-blue-800">Last Catch</h2>
-      <div id="log-content" class="bg-gray-800 rounded p-3 border-l-4 border-blue-500">
-        No catches yet.
-      </div>
-    </div>
-  </div>
-
-  <!-- PROFILE SCREEN -->
-  <div id="screen-profile" class="hidden">
-    <h2 class="text-xl font-bold mb-3">Your Stats</h2>
-    <p>Biggest carp: <span id="stat-biggest-carp">0</span> kg</p>
-    <p>Biggest common: <span id="stat-biggest-common">0</span> kg</p>
-    <p>Biggest mirror: <span id="stat-biggest-mirror">0</span> kg</p>
-    <p>Total weight: <span id="stat-total-weight">0</span> kg</p>
-  </div>
-
-  <!-- LEADERBOARD -->
-  <div id="screen-leaderboard" class="hidden">
-    <h2 class="text-xl font-bold mb-1">Leaderboard</h2>
-
-    <div class="flex gap-2 mb-3">
-      <button id="btn-leaderboard-biggest"
-              class="flex-1 py-2 rounded text-sm font-bold bg-blue-600 text-white">
-        Biggest Carp
-      </button>
-      <button id="btn-leaderboard-total"
-              class="flex-1 py-2 rounded text-sm font-bold bg-gray-700 text-gray-200">
-        Total Weight
-      </button>
-    </div>
-
-    <div id="leaderboard-list" class="space-y-2 text-sm">
-      <p class="text-gray-400 text-sm">Loading leaderboard...</p>
-    </div>
-  </div>
-
-</div>
+<!-- FIREBASE -->
+<script src="https://www.gstatic.com/firebasejs/12.6.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/12.6.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/12.6.0/firebase-firestore-compat.js"></script>
 
 <script>
-if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.register('./service-worker.js');
-}
-</script>
-
-<!-- MAIN APP -->
-<script type="module">
-/* FIREBASE */
-import { initializeApp } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-app.js";
-import {
-  getFirestore, doc, getDoc, setDoc, serverTimestamp,
-  collection, getDocs, query, orderBy, limit
-} from "https://www.gstatic.com/firebasejs/12.6.0/firebase-firestore.js";
-import {
-  getAuth, onAuthStateChanged, signInAnonymously
-} from "https://www.gstatic.com/firebasejs/12.6.0/firebase-auth.js";
-
 const firebaseConfig = {
   apiKey: "AIzaSyASz_xXcEF5pV6CAZR9YfPMUxk_8kS_VTU",
   authDomain: "carp-simulator-app-394af.firebaseapp.com",
@@ -182,524 +125,262 @@ const firebaseConfig = {
   appId: "1:761509507210:web:1c5bb0d8af518fab3ebd73"
 };
 
-const app = initializeApp(firebaseConfig);
-const db = getFirestore(app);
-const auth = getAuth(app);
+firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
+const auth = firebase.auth();
 
-/* VIBRATION */
-function vibratePattern() {
-  if (navigator.vibrate) {
-    navigator.vibrate([200, 100, 200, 100, 200, 100]);
-  }
-}
-function stopVibration() {
-  if (navigator.vibrate) {
-    navigator.vibrate(0);
-  }
-}
+let currentUser = null;
+let profileRef = null;
 
-/* PB POPUP */
-function showPBPopup(text) {
-  const popup = document.getElementById("pb-popup");
-  const pbText = document.getElementById("pb-text");
+auth.signInAnonymously().catch(console.error);
 
-  pbText.textContent = text;
-  popup.classList.remove("hidden");
-  popup.classList.add("flex");
+auth.onAuthStateChanged(user => {
+    if (!user) return;
+    currentUser = user;
+    profileRef = db.collection("players").doc(user.uid);
+    loadProfile();
+});
 
-  setTimeout(() => {
-    popup.classList.add("hidden");
-    popup.classList.remove("flex");
-  }, 2800);
-}
-
-/* DOM REFERENCES */
-const startupOverlay=document.getElementById("startup-overlay");
-const nameInput=document.getElementById("profile-name-input");
-const saveProfileBtn=document.getElementById("save-profile-btn");
-const continueBtn=document.getElementById("continue-btn");
-
-const headerUsername=document.getElementById("header-username");
-
-const statBiggestCarp=document.getElementById("stat-biggest-carp");
-const statBiggestCommon=document.getElementById("stat-biggest-common");
-const statBiggestMirror=document.getElementById("stat-biggest-mirror");
-const statTotalWeight=document.getElementById("stat-total-weight");
-
-const toggleFishingButton=document.getElementById("toggle-fishing-button");
-const currentStatusEl=document.getElementById("current-status");
-const timeToBiteEl=document.getElementById("time-to-bite");
-const reelButton=document.getElementById("reel-button");
-const logContentEl=document.getElementById("log-content");
-
-const tabFishing=document.getElementById("tab-fishing");
-const tabProfile=document.getElementById("tab-profile");
-const tabLeaderboard=document.getElementById("tab-leaderboard");
-
-const screenFishing=document.getElementById("screen-fishing");
-const screenProfile=document.getElementById("screen-profile");
-const screenLeaderboard=document.getElementById("screen-leaderboard");
-
-const btnLeaderboardBiggest=document.getElementById("btn-leaderboard-biggest");
-const btnLeaderboardTotal=document.getElementById("btn-leaderboard-total");
-const leaderboardList=document.getElementById("leaderboard-list");
-
-/* PROFILE SYSTEM */
-let profile=null;
-let profileId=null;
-
-function createDefaultProfile(username="Guest"){
-  return{
-    username,
-    stats:{
-      biggestCarpKg:0,
-      biggestCommonKg:0,
-      biggestMirrorKg:0,
-      totalWeightKg:0
-    },
-    createdAt:new Date().toISOString()
-  };
-}
-
-function hideStartupOverlay(){startupOverlay.style.display="none";}
-function showStartupOverlay(){startupOverlay.style.display="flex";}
-
-function updateProfileUI(){
-  if(!profile)return;
-  headerUsername.textContent=profile.username;
-  statBiggestCarp.textContent=profile.stats.biggestCarpKg.toFixed(1);
-  statBiggestCommon.textContent=profile.stats.biggestCommonKg.toFixed(1);
-  statBiggestMirror.textContent=profile.stats.biggestMirrorKg.toFixed(1);
-  statTotalWeight.textContent=profile.stats.totalWeightKg.toFixed(1);
-}
-
-async function loadProfileFromCloud(){
-  if (!profileId) return;
-
-  try{
-    const ref=doc(db,"players",profileId);
-    const snap=await getDoc(ref);
-
-    if(snap.exists()){
-      profile=snap.data();
-      if(!profile.stats){
-        profile.stats=createDefaultProfile(profile.username).stats;
-      }
-      updateProfileUI();
-      hideStartupOverlay();
-    }else{
-      profile=null;
-      showStartupOverlay();
+/* Load profile */
+async function loadProfile() {
+    const doc = await profileRef.get();
+    if (doc.exists) {
+        document.getElementById("profile-screen").classList.add("hidden");
+        document.getElementById("game-screen").classList.remove("hidden");
+        updateUI();
     }
-  }catch(e){
-    console.error("Error loading profile:", e);
-    if(!profile){
-      profile=createDefaultProfile("Guest");
-      updateProfileUI();
-    }
-    showStartupOverlay();
-  }
 }
 
-async function saveProfileToCloud(){
-  if(!profileId||!profile)return;
-  try {
-    await setDoc(doc(db,"players",profileId),{
-      ...profile,updatedAt:serverTimestamp()
+/* Save profile */
+async function saveProfile() {
+    const name = document.getElementById("profileNameInput").value.trim();
+    if (!name) return;
+
+    await profileRef.set({
+        name: name,
+        totalWeightKg: 0,
+        biggestCarpKg: 0,
+        biggestCommonKg: 0,
+        biggestMirrorKg: 0,
+        biggestFullyScaledKg: 0,
+        biggestGhostKg: 0,
+        biggestKoiKg: 0,
+        catfishCount: 0
     });
-  } catch (e) {
-    console.error("Error saving profile:", e);
-  }
-}
 
-/* AUTH + PROFILE INIT (ANONYMOUS LOGIN) */
-function initAuthAndProfile() {
-  onAuthStateChanged(auth, async (user) => {
-    if (user) {
-      profileId = user.uid;
-      await loadProfileFromCloud();
-    } else {
-      try {
-        await signInAnonymously(auth);
-      } catch (e) {
-        console.error("Anonymous sign-in failed:", e);
-        if (!profile) {
-          profile = createDefaultProfile("Guest");
-          updateProfileUI();
-        }
-        showStartupOverlay();
-      }
-    }
-  });
-}
-
-/* STARTUP OVERLAY BUTTONS */
-saveProfileBtn.addEventListener("click",()=>{
-  const name=nameInput.value.trim();
-  if(!name){alert("Enter username");return;}
-
-  if(!profile){profile=createDefaultProfile(name);}
-  else{profile.username=name;}
-
-  updateProfileUI();
-  hideStartupOverlay();
-  saveProfileToCloud();
-});
-
-continueBtn.addEventListener("click",()=>{
-  if(!profile){
-    profile=createDefaultProfile("Guest");
-  }
-  updateProfileUI();
-  hideStartupOverlay();
-  saveProfileToCloud();
-});
-
-/* FISHING LOGIC */
-let isFishing=false;
-let countdownValue=0;
-let biteTimeout=null;
-let catchTimer=null;
-
-const alarmSound=new Audio("./assets/CarpRunSound001.mp3");
-alarmSound.loop=true;
-
-function startAlarm(){alarmSound.currentTime=0;alarmSound.play().catch(()=>{});}
-function stopAlarm(){alarmSound.pause();alarmSound.currentTime=0;}
-
-function setStatus(t){currentStatusEl.textContent=t;}
-
-function toggleFishing(){isFishing?stopFishing():startFishing();}
-
-function startFishing(){
-  isFishing=true;
-  toggleFishingButton.textContent="Stop Fishing";
-  setStatus("Fishing...");
-  timeToBiteEl.textContent="Waiting...";
-  const waitMs=Math.floor(Math.random()*(60000-5000))+5000; // 5–60s
-  biteTimeout=setTimeout(startBite,waitMs);
-}
-
-function stopFishing(){
-  isFishing=false;
-  toggleFishingButton.textContent="Start Fishing";
-  setStatus("Stopped");
-  timeToBiteEl.textContent="Press Start Fishing.";
-  clearTimeout(biteTimeout);
-  clearInterval(catchTimer);
-  stopAlarm();
-  stopVibration();
-  reelButton.classList.add("hidden");
-}
-
-function startBite(){
-  if(!isFishing)return;
-  countdownValue=15;
-  setStatus("RUN! RUN!");
-  timeToBiteEl.textContent="Fish on!";
-  reelButton.textContent=`Reel In! (${countdownValue}s)`;
-  reelButton.classList.remove("hidden");
-
-  startAlarm();
-  vibratePattern();
-
-  catchTimer=setInterval(()=>{
-    countdownValue--;
-    reelButton.textContent=`Reel In! (${countdownValue}s)`;
-
-    if(countdownValue<=0){
-      clearInterval(catchTimer);
-      reelButton.classList.add("hidden");
-      stopAlarm();
-      stopVibration();
-      setStatus("Missed run");
-      timeToBiteEl.textContent="Too slow!";
-      isFishing=false;
-      toggleFishingButton.textContent="Start Fishing";
-    }
-  },1000);
-}
-
-/* UPDATED FISH GENERATION:
-   - 4–17 kg: 85% (most fish)
-   - 17–25 kg: 12% (rare)
-   - 25–55 kg: 3% (very rare monsters)
-   Catfish more common, especially at bigger sizes.
-*/
-function generateFish() {
-  const speciesList = [
-    "Common Carp",
-    "Mirror Carp",
-    "Fully Scaled Carp",
-    "Ghost Carp",
-    "Koi Carp",
-    "Catfish"
-  ];
-
-  // Decide weight tier first
-  const roll = Math.random();
-  let weightKg;
-
-  if (roll < 0.85) {
-    // 85%: normal fish, 4–17 kg
-    weightKg = Math.random() * (17 - 4) + 4;
-  } else if (roll < 0.97) {
-    // 12%: decent big fish, 17–25 kg
-    weightKg = Math.random() * (25 - 17) + 17;
-  } else {
-    // 3%: true monsters, 25–55 kg
-    weightKg = Math.random() * (55 - 25) + 25;
-  }
-
-  // Species weighting: carp 17kg+ are rare, catfish more common as weight increases
-  let species;
-  const r2 = Math.random();
-
-  if (weightKg < 17) {
-    // Mostly smaller carp, some catfish
-    if (r2 < 0.25)      species = "Common Carp";
-    else if (r2 < 0.45) species = "Mirror Carp";
-    else if (r2 < 0.60) species = "Fully Scaled Carp";
-    else if (r2 < 0.72) species = "Ghost Carp";
-    else if (r2 < 0.80) species = "Koi Carp";
-    else                species = "Catfish";      // ~20% catfish here
-  } else if (weightKg < 25) {
-    // Bigger fish: catfish significantly more common
-    if (r2 < 0.40)      species = "Catfish";      // 40% catfish
-    else if (r2 < 0.52) species = "Common Carp";
-    else if (r2 < 0.64) species = "Mirror Carp";
-    else if (r2 < 0.76) species = "Fully Scaled Carp";
-    else if (r2 < 0.88) species = "Ghost Carp";
-    else                species = "Koi Carp";
-  } else {
-    // Monsters: catfish dominate
-    if (r2 < 0.60)      species = "Catfish";      // 60% catfish
-    else if (r2 < 0.68) species = "Common Carp";
-    else if (r2 < 0.76) species = "Mirror Carp";
-    else if (r2 < 0.84) species = "Fully Scaled Carp";
-    else if (r2 < 0.92) species = "Ghost Carp";
-    else                species = "Koi Carp";
-  }
-
-  weightKg = parseFloat(weightKg.toFixed(1));
-  const weightLb = parseFloat((weightKg * 2.20462).toFixed(1));
-
-  return { species, weightKg, weightLb, time:new Date().toLocaleString() };
-}
-
-/* IMAGE SELECTION */
-function getFishImage(species, weightKg) {
-  let tier;
-  if (weightKg < 17) tier = "small";
-  else if (weightKg < 30) tier = "big";
-  else tier = "monster";
-
-  let key = "";
-  switch (species) {
-    case "Common Carp": key = "common"; break;
-    case "Mirror Carp": key = "mirror"; break;
-    case "Fully Scaled Carp": key = "fullyscaled"; break;
-    case "Ghost Carp": key = "ghost"; break;
-    case "Koi Carp": key = "koi"; break;
-    case "Catfish": key = "catfish"; break;
-    default: key = "common";
-  }
-
-  return `assets/fish/${tier}_${key}.png`;
-}
-
-/* APPLY STATS + PB POPUP */
-function applyStats(fish){
-  if(!profile)return;
-
-  let isPB = false;
-  let pbMessage = "";
-
-  const kg = fish.weightKg;
-  const lb = fish.weightLb;
-  const species = fish.species;
-
-  profile.stats.totalWeightKg += kg;
-
-  if (species !== "Catfish" && kg > profile.stats.biggestCarpKg) {
-    profile.stats.biggestCarpKg = kg;
-    isPB = true;
-    pbMessage = `NEW PB! ${lb} lb ${species}`;
-  }
-
-  if (species === "Common Carp" && kg > profile.stats.biggestCommonKg) {
-    profile.stats.biggestCommonKg = kg;
-    isPB = true;
-    pbMessage = `NEW PB! ${lb} lb Common Carp`;
-  }
-
-  if (species === "Mirror Carp" && kg > profile.stats.biggestMirrorKg) {
-    profile.stats.biggestMirrorKg = kg;
-    isPB = true;
-    pbMessage = `NEW PB! ${lb} lb Mirror Carp`;
-  }
-
-  updateProfileUI();
-  saveProfileToCloud();
-
-  if (isPB) showPBPopup(pbMessage);
-}
-
-/* DISPLAY CATCH */
-function displayCatch(fish){
-  const imgPath = getFishImage(fish.species, fish.weightKg);
-
-  logContentEl.innerHTML=`
-    <div class="flex flex-col items-center">
-      <img src="${imgPath}"
-           alt="${fish.species}"
-           class="w-full max-h-64 object-contain mb-3 rounded-lg border border-gray-700 bg-black" />
-      <p class="text-yellow-400 text-xl font-bold">
-        ${fish.weightKg} kg (${fish.weightLb} lb)
-      </p>
-      <p class="font-bold">${fish.species}</p>
-      <p class="text-gray-400 text-sm">${fish.time}</p>
-    </div>
-  `;
-}
-
-/* REEL-IN: NO AUTO RESTART */
-function reelIn(){
-  clearInterval(catchTimer);
-  stopAlarm();
-  stopVibration();
-  reelButton.classList.add("hidden");
-
-  const fish=generateFish();
-  setStatus("Fish landed!");
-  timeToBiteEl.textContent="Press Start Fishing to cast again.";
-
-  applyStats(fish);
-  displayCatch(fish);
-
-  isFishing = false;
-  toggleFishingButton.textContent = "Start Fishing";
+    document.getElementById("profile-screen").classList.add("hidden");
+    document.getElementById("game-screen").classList.remove("hidden");
 }
 
 /* LEADERBOARD */
-let currentLeaderboardMode="biggest";
+async function showLeaderboard() {
+    document.getElementById("game-screen").classList.add("hidden");
+    document.getElementById("leaderboard-screen").classList.remove("hidden");
 
-function setLeaderboardButtons(mode){
-  if(mode==="biggest"){
-    btnLeaderboardBiggest.classList.add("bg-blue-600","text-white");
-    btnLeaderboardBiggest.classList.remove("bg-gray-700","text-gray-200");
-    btnLeaderboardTotal.classList.add("bg-gray-700","text-gray-200");
-    btnLeaderboardTotal.classList.remove("bg-blue-600","text-white");
-  }else{
-    btnLeaderboardTotal.classList.add("bg-blue-600","text-white");
-    btnLeaderboardTotal.classList.remove("bg-gray-700","text-gray-200");
-    btnLeaderboardBiggest.classList.add("bg-gray-700","text-gray-200");
-    btnLeaderboardBiggest.classList.remove("bg-blue-600","text-white");
-  }
+    const list = document.getElementById("leaderboardList");
+    list.innerHTML = "Loading...";
+
+    const snap = await db.collection("players")
+        .orderBy("biggestCarpKg", "desc")
+        .limit(20)
+        .get();
+
+    list.innerHTML = "";
+    snap.forEach(doc => {
+        const d = doc.data();
+        list.innerHTML += `
+            <div class="p-3 border-b border-gray-600">
+                <span class="font-bold">${d.name}</span> —
+                PB: ${d.biggestCarpKg || 0} kg
+            </div>
+        `;
+    });
 }
 
-async function loadLeaderboard(mode){
-  currentLeaderboardMode=mode;
-  setLeaderboardButtons(mode);
-  leaderboardList.innerHTML=`<p class="text-gray-400">Loading...</p>`;
+function closeLeaderboard() {
+    document.getElementById("leaderboard-screen").classList.add("hidden");
+    document.getElementById("game-screen").classList.remove("hidden");
+}
 
-  try{
-    const playersRef=collection(db,"players");
-    const field=mode==="total"
-      ?"stats.totalWeightKg"
-      :"stats.biggestCarpKg";
+/* GAME LOGIC */
+let isFishing = false;
+let biteTimeout = null;
+let countdownTimer = null;
+let countdownValue = 0;
 
-    const q=query(playersRef,orderBy(field,"desc"),limit(10));
-    const snap=await getDocs(q);
+function toggleFishing() {
+    if (isFishing) {
+        stopFishing();
+    } else {
+        startFishing();
+    }
+}
 
-    if(snap.empty){
-      leaderboardList.innerHTML=`<p class="text-gray-400">No records yet.</p>`;
-      return;
+/* Start fishing */
+function startFishing() {
+    isFishing = true;
+    document.getElementById("toggle-fish-btn").textContent = "Stop Fishing";
+    document.getElementById("statusText").textContent = "Lines are in! Waiting...";
+    document.getElementById("catchDisplay").innerHTML = "";
+
+    const min = 20000;      // 20 seconds
+    const max = 1800000;    // 30 minutes
+    const biteTime = Math.floor(Math.random() * (max - min)) + min;
+
+    biteTimeout = setTimeout(startBite, biteTime);
+
+    document.getElementById("timeToBite").textContent =
+        "A carp could pick up the bait any moment...";
+}
+
+/* Stop fishing */
+function stopFishing() {
+    isFishing = false;
+    clearTimeout(biteTimeout);
+    clearInterval(countdownTimer);
+
+    document.getElementById("toggle-fish-btn").textContent = "Start Fishing";
+    document.getElementById("statusText").textContent = "Fishing stopped.";
+    document.getElementById("reelButton").classList.add("hidden");
+}
+
+/* Bite occurs */
+function startBite() {
+    if (!isFishing) return;
+
+    navigator.vibrate?.(300);
+
+    document.body.classList.add("alarm-flash");
+
+    countdownValue = 15;
+    document.getElementById("reelButton").classList.remove("hidden");
+    document.getElementById("reelButton").textContent = `Reel In! (${countdownValue}s)`;
+
+    countdownTimer = setInterval(() => {
+        countdownValue--;
+        document.getElementById("reelButton").textContent = `Reel In! (${countdownValue}s)`;
+
+        if (countdownValue <= 0) {
+            clearInterval(countdownTimer);
+            document.body.classList.remove("alarm-flash");
+            document.getElementById("reelButton").classList.add("hidden");
+            stopFishing();
+            document.getElementById("statusText").textContent = "❌ The fish got away!";
+        }
+    }, 1000);
+}
+
+/* Reel in */
+async function reelIn() {
+    clearInterval(countdownTimer);
+    document.body.classList.remove("alarm-flash");
+    document.getElementById("reelButton").classList.add("hidden");
+
+    const carp = generateCarpDetails();
+
+    document.getElementById("statusText").textContent =
+        `🎣 You caught a ${carp.weightKg} kg (${carp.weightLbs} lb) ${carp.species}!`;
+
+    document.getElementById("catchDisplay").innerHTML = `
+        <img src="${carp.image}" class="fish-image" />
+    `;
+
+    await updateStats(carp);
+
+    stopFishing();
+}
+
+/* Update Firestore stats */
+async function updateStats(carp) {
+    const doc = await profileRef.get();
+    if (!doc.exists) return;
+
+    const p = doc.data();
+
+    const totalWeight = (p.totalWeightKg || 0) + parseFloat(carp.weightKg);
+
+    const updated = {
+        totalWeightKg: totalWeight,
+        biggestCarpKg: Math.max(p.biggestCarpKg || 0, carp.weightKg)
+    };
+
+    if (carp.species === "Common Carp")
+        updated.biggestCommonKg = Math.max(p.biggestCommonKg || 0, carp.weightKg);
+
+    if (carp.species === "Mirror Carp")
+        updated.biggestMirrorKg = Math.max(p.biggestMirrorKg || 0, carp.weightKg);
+
+    if (carp.species === "Fully Scaled Carp")
+        updated.biggestFullyScaledKg = Math.max(p.biggestFullyScaledKg || 0, carp.weightKg);
+
+    if (carp.species === "Ghost Carp")
+        updated.biggestGhostKg = Math.max(p.biggestGhostKg || 0, carp.weightKg);
+
+    if (carp.species === "Koi Carp")
+        updated.biggestKoiKg = Math.max(p.biggestKoiKg || 0, carp.weightKg);
+
+    if (carp.species === "Catfish")
+        updated.catfishCount = (p.catfishCount || 0) + 1;
+
+    await profileRef.update(updated);
+}
+
+/* Get fish image */
+function getFishImage(species, kg) {
+    if (species === "Catfish") return "fish/catfish.png";
+
+    if (kg < 17) return `fish/${species}-small.png`;
+    if (kg < 40) return `fish/${species}-big.png`;
+
+    return `fish/${species}-monster.png`;
+}
+
+/* Weighted random */
+function weightedRandom(weights) {
+    const total = Object.values(weights).reduce((a, b) => a + b, 0);
+    let r = Math.random() * total;
+    for (const [key, value] of Object.entries(weights)) {
+        if (r < value) return key;
+        r -= value;
+    }
+}
+
+/* Generate carp details */
+function generateCarpDetails() {
+    const speciesWeights = {
+        "Common Carp": 25,
+        "Mirror Carp": 20,
+        "Fully Scaled Carp": 10,
+        "Ghost Carp": 8,
+        "Koi Carp": 5,
+        "Catfish": 32
+    };
+
+    const species = weightedRandom(speciesWeights);
+
+    let kg;
+
+    const roll = Math.random();
+
+    if (species === "Catfish") {
+        kg = Math.random() * (25 - 5) + 5;
+    } else {
+        if (roll < 0.55) kg = Math.random() * (17 - 4) + 4;
+        else if (roll < 0.85) kg = Math.random() * (25 - 17) + 17;
+        else if (roll < 0.97) kg = Math.random() * (40 - 25) + 25;
+        else kg = Math.random() * (55 - 40) + 40;
     }
 
-    let html="";
-    let index=0;
-    snap.forEach(docSnap=>{
-      const d=docSnap.data()||{};
-      const s=d.stats||{};
+    const lbs = kg * 2.20462;
 
-      let medal=index+1+".";
-      if(index===0)medal="🥇";
-      else if(index===1)medal="🥈";
-      else if(index===2)medal="🥉";
-
-      const statValue=mode==="total"
-        ?`${(s.totalWeightKg||0).toFixed(1)} kg`
-        :`${(s.biggestCarpKg||0).toFixed(1)} kg`;
-
-      html+=`
-        <div class="flex items-center justify-between bg-gray-800 rounded-lg px-3 py-2 border border-gray-700">
-          <div class="flex items-center gap-3">
-            <div class="text-xl">${medal}</div>
-            <div>
-              <p class="font-bold text-sm">${d.username||"Unknown"}</p>
-              <p class="text-xs text-gray-400">
-                ${mode==="total" ? "Total Weight" : "Biggest Carp"}
-              </p>
-            </div>
-          </div>
-          <div class="font-bold text-sm text-yellow-300">${statValue}</div>
-        </div>
-      `;
-      index++;
-    });
-
-    leaderboardList.innerHTML=html;
-  }catch{
-    leaderboardList.innerHTML=`<p class="text-red-400">Error loading leaderboard.</p>`;
-  }
+    return {
+        species,
+        weightKg: kg.toFixed(1),
+        weightLbs: lbs.toFixed(1),
+        image: getFishImage(species, kg)
+    };
 }
-
-btnLeaderboardBiggest.addEventListener("click",()=>loadLeaderboard("biggest"));
-btnLeaderboardTotal.addEventListener("click",()=>loadLeaderboard("total"));
-
-/* TABS */
-function showTab(tab){
-  screenFishing.classList.add("hidden");
-  screenProfile.classList.add("hidden");
-  screenLeaderboard.classList.add("hidden");
-
-  tabFishing.classList.remove("tab-active");
-  tabProfile.classList.remove("tab-active");
-  tabLeaderboard.classList.remove("tab-active");
-
-  tabFishing.classList.add("tab-inactive");
-  tabProfile.classList.add("tab-inactive");
-  tabLeaderboard.classList.add("tab-inactive");
-
-  if(tab==="fishing"){
-    screenFishing.classList.remove("hidden");
-    tabFishing.classList.add("tab-active");
-  }else if(tab==="profile"){
-    screenProfile.classList.remove("hidden");
-    tabProfile.classList.add("tab-active");
-  }else{
-    screenLeaderboard.classList.remove("hidden");
-    tabLeaderboard.classList.add("tab-active");
-    loadLeaderboard(currentLeaderboardMode);
-  }
-}
-
-tabFishing.addEventListener("click",()=>showTab("fishing"));
-tabProfile.addEventListener("click",()=>showTab("profile"));
-tabLeaderboard.addEventListener("click",()=>showTab("leaderboard"));
-
-/* BUTTONS */
-toggleFishingButton.addEventListener("click",toggleFishing);
-reelButton.addEventListener("click",reelIn);
-
-/* INIT */
-window.addEventListener("load",()=>{
-  initAuthAndProfile();
-  showTab("fishing");
-});
 </script>
 
 </body>
 </html>
-
