@@ -22,7 +22,7 @@
       position:fixed;
       inset:0;
       background:rgba(0,0,0,0.9);
-      display:flex;              /* visible by default */
+      display:flex;              /* visible by default on first load */
       justify-content:center;
       align-items:center;
       z-index:999;
@@ -39,7 +39,7 @@
   <!-- STARTUP PROFILE SCREEN -->
   <div id="startup-overlay">
     <div class="bg-gray-800 p-6 rounded-xl w-full max-w-sm border border-gray-700 text-center">
-      <h1 class="text-2xl font-bold mb-4">Create Profile</h1>
+      <h1 class="text-2xl font-bold mb-2">Create Profile</h1>
       <p class="text-sm text-gray-300 mb-3">
         Choose a username to start fishing. Your stats will be saved online.
       </p>
@@ -111,21 +111,37 @@
     <p>Biggest mirror: <span id="stat-biggest-mirror">0</span> kg</p>
     <p>Total weight: <span id="stat-total-weight">0</span> kg</p>
     <p class="text-xs text-gray-400 mt-3">
-      Stats are stored in the cloud for this device. Future: global leaderboard.
+      Stats are stored in the cloud for this device. Global leaderboard shows all players.
     </p>
   </div>
 
   <!-- LEADERBOARD SCREEN -->
   <div id="screen-leaderboard" class="hidden">
-    <h2 class="text-xl font-bold mb-3">Leaderboard</h2>
-    <p class="text-sm text-gray-400">
-      Coming soon: global top catches and total weight rankings.
+    <h2 class="text-xl font-bold mb-1">Leaderboard</h2>
+    <p class="text-xs text-gray-400 mb-3">
+      Compare your catches with anglers around the world.
     </p>
+
+    <!-- Toggle -->
+    <div class="flex gap-2 mb-3">
+      <button id="btn-leaderboard-biggest"
+              class="flex-1 py-2 rounded text-sm font-bold bg-blue-600 text-white">
+        Biggest Carp
+      </button>
+      <button id="btn-leaderboard-total"
+              class="flex-1 py-2 rounded text-sm font-bold bg-gray-700 text-gray-200">
+        Total Weight
+      </button>
+    </div>
+
+    <div id="leaderboard-list" class="space-y-2 text-sm">
+      <p class="text-gray-400 text-sm">Loading leaderboard...</p>
+    </div>
   </div>
 
 </div>
 
-<!-- Simple service worker registration (optional but nice to keep) -->
+<!-- Simple service worker registration (optional) -->
 <script>
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
@@ -134,7 +150,7 @@ if ('serviceWorker' in navigator) {
 }
 </script>
 
-<!-- MAIN APP + FIREBASE (MODULE) -->
+<!-- MAIN APP + FIREBASE -->
 <script type="module">
   // ==========================
   // Firebase imports
@@ -145,7 +161,12 @@ if ('serviceWorker' in navigator) {
     doc,
     getDoc,
     setDoc,
-    serverTimestamp
+    serverTimestamp,
+    collection,
+    getDocs,
+    query,
+    orderBy,
+    limit
   } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-firestore.js";
 
   // ==========================
@@ -191,6 +212,10 @@ if ('serviceWorker' in navigator) {
   const screenFishing     = document.getElementById("screen-fishing");
   const screenProfile     = document.getElementById("screen-profile");
   const screenLeaderboard = document.getElementById("screen-leaderboard");
+
+  const btnLeaderboardBiggest = document.getElementById("btn-leaderboard-biggest");
+  const btnLeaderboardTotal   = document.getElementById("btn-leaderboard-total");
+  const leaderboardList       = document.getElementById("leaderboard-list");
 
   // ==========================
   // Profile + ID handling
@@ -255,20 +280,17 @@ if ('serviceWorker' in navigator) {
 
       if (snap.exists()) {
         profile = snap.data();
-        // Ensure stats object exists
         if (!profile.stats) {
           profile.stats = createDefaultProfile(profile.username).stats;
         }
         updateProfileUI();
         hideStartupOverlay();
       } else {
-        // No profile yet: show overlay
         profile = null;
         showStartupOverlay();
       }
     } catch (e) {
       console.error("Failed to load profile from Firestore:", e);
-      // Fallback to guest profile but still show overlay so user can set a name
       profile = createDefaultProfile("Guest");
       updateProfileUI();
       showStartupOverlay();
@@ -307,11 +329,10 @@ if ('serviceWorker' in navigator) {
 
     updateProfileUI();
     hideStartupOverlay();
-    saveProfileToCloud(); // fire and forget
+    saveProfileToCloud(); // fire & forget
   });
 
   continueBtn.addEventListener("click", () => {
-    // If no profile yet, just use Guest locally
     if (!profile) {
       profile = createDefaultProfile("Guest");
       updateProfileUI();
@@ -413,7 +434,7 @@ if ('serviceWorker' in navigator) {
   }
 
   function applyStats(fish) {
-    if (!profile) return; // if guest without saving, skip cloud stats
+    if (!profile) return; // guest without online saving
 
     const w = fish.weightKg;
     profile.stats.totalWeightKg += w;
@@ -458,9 +479,97 @@ if ('serviceWorker' in navigator) {
   }
 
   // ==========================
+  // LEADERBOARD (Style 3 – Gaming)
+  // ==========================
+  let currentLeaderboardMode = "biggest"; // "biggest" or "total"
+
+  function setLeaderboardButtons(mode) {
+    if (mode === "biggest") {
+      btnLeaderboardBiggest.className =
+        "flex-1 py-2 rounded text-sm font-bold bg-blue-600 text-white";
+      btnLeaderboardTotal.className =
+        "flex-1 py-2 rounded text-sm font-bold bg-gray-700 text-gray-200";
+    } else {
+      btnLeaderboardBiggest.className =
+        "flex-1 py-2 rounded text-sm font-bold bg-gray-700 text-gray-200";
+      btnLeaderboardTotal.className =
+        "flex-1 py-2 rounded text-sm font-bold bg-blue-600 text-white";
+    }
+  }
+
+  async function loadLeaderboard(mode) {
+    currentLeaderboardMode = mode;
+    setLeaderboardButtons(mode);
+    leaderboardList.innerHTML = `<p class="text-gray-400 text-sm">Loading leaderboard...</p>`;
+
+    try {
+      const playersRef = collection(db, "players");
+      const field = mode === "total" ? "stats.totalWeightKg" : "stats.biggestCarpKg";
+      const q = query(playersRef, orderBy(field, "desc"), limit(10));
+      const snap = await getDocs(q);
+
+      if (snap.empty) {
+        leaderboardList.innerHTML = `<p class="text-gray-400 text-sm">No data yet. Be the first to land a carp!</p>`;
+        return;
+      }
+
+      const players = [];
+      snap.forEach(docSnap => {
+        const d = docSnap.data() || {};
+        const s = d.stats || {};
+        players.push({
+          username: d.username || "Unknown angler",
+          biggestCarpKg: Number(s.biggestCarpKg || 0),
+          totalWeightKg: Number(s.totalWeightKg || 0)
+        });
+      });
+
+      let html = "";
+      players.forEach((p, index) => {
+        let rankIcon = `${index + 1}.`;
+        if (index === 0) rankIcon = "🥇";
+        else if (index === 1) rankIcon = "🥈";
+        else if (index === 2) rankIcon = "🥉";
+
+        const statValue =
+          mode === "total"
+            ? `${p.totalWeightKg.toFixed(1)} kg`
+            : `${p.biggestCarpKg.toFixed(1)} kg`;
+
+        const statLabel =
+          mode === "total" ? "Total Weight" : "Biggest Carp";
+
+        html += `
+          <div class="flex items-center justify-between bg-gray-800 rounded-lg px-3 py-2 border border-gray-700">
+            <div class="flex items-center gap-3">
+              <div class="text-xl">${rankIcon}</div>
+              <div>
+                <p class="font-bold text-sm">${p.username}</p>
+                <p class="text-xs text-gray-400">${statLabel}</p>
+              </div>
+            </div>
+            <div class="font-bold text-sm text-yellow-300">
+              ${statValue}
+            </div>
+          </div>
+        `;
+      });
+
+      leaderboardList.innerHTML = html;
+    } catch (e) {
+      console.error("Error loading leaderboard:", e);
+      leaderboardList.innerHTML =
+        `<p class="text-red-400 text-sm">Could not load leaderboard right now.</p>`;
+    }
+  }
+
+  btnLeaderboardBiggest.addEventListener("click", () => loadLeaderboard("biggest"));
+  btnLeaderboardTotal.addEventListener("click", () => loadLeaderboard("total"));
+
+  // ==========================
   // TABS
   // ==========================
-  function showTab(tab) {
+  function showTab(tab){
     screenFishing.classList.add("hidden");
     screenProfile.classList.add("hidden");
     screenLeaderboard.classList.add("hidden");
@@ -482,6 +591,8 @@ if ('serviceWorker' in navigator) {
     } else if (tab === "leaderboard") {
       screenLeaderboard.classList.remove("hidden");
       tabLeaderboard.classList.add("tab-active");
+      // load current leaderboard mode when switching to this tab
+      loadLeaderboard(currentLeaderboardMode);
     }
   }
 
@@ -499,8 +610,9 @@ if ('serviceWorker' in navigator) {
   // INIT
   // ==========================
   window.addEventListener("load", () => {
-    // Try cloud profile; overlay stays visible until this finishes
     loadProfileFromCloud();
+    // Fishing tab is default
+    showTab("fishing");
   });
 </script>
 
