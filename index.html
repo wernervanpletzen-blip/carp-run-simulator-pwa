@@ -28,10 +28,7 @@
     .tab-active { background:#3b82f6; color:#fff; }
     .tab-inactive { background:#1f2937; color:#ccc; }
 
-    /* PB Popup Styles */
-    #pb-popup {
-      backdrop-filter: blur(3px);
-    }
+    #pb-popup { backdrop-filter: blur(3px); }
 
     @keyframes pbFade {
       0% { opacity: 0; transform: scale(0.7); }
@@ -59,33 +56,19 @@
   <!-- STARTUP PROFILE SCREEN -->
   <div id="startup-overlay">
     <div class="bg-gray-800 p-6 rounded-xl w-full max-w-sm border border-gray-700 text-center">
-
-      <!-- Startup Logo -->
-      <img src="./assets/logo.png"
-           class="w-28 h-28 mx-auto mb-4 rounded-lg object-contain border border-gray-600 shadow-xl" />
-
+      <img src="./assets/logo.png" class="w-28 h-28 mx-auto mb-4 rounded-lg object-contain border border-gray-600 shadow-xl" />
       <h1 class="text-2xl font-bold mb-2">Create Profile</h1>
       <p class="text-sm text-gray-300 mb-3">Choose a username to begin.</p>
-
       <input id="profile-name-input" placeholder="Enter username"
              class="w-full p-2 mb-4 bg-gray-700 border border-gray-600 rounded text-center" />
-
-      <button id="save-profile-btn" class="w-full py-2 bg-blue-600 font-bold rounded mb-3">
-        Save Profile & Start
-      </button>
-
-      <button id="continue-btn"
-              class="w-full py-2 bg-gray-600 font-bold rounded text-sm">
-        Continue as Guest
-      </button>
+      <button id="save-profile-btn" class="w-full py-2 bg-blue-600 font-bold rounded mb-3">Save Profile & Start</button>
+      <button id="continue-btn" class="w-full py-2 bg-gray-600 font-bold rounded text-sm">Continue as Guest</button>
     </div>
   </div>
 
-  <!-- HEADER WITH BIGGER LOGO -->
+  <!-- HEADER -->
   <div class="flex flex-col items-center text-center mb-4 mt-2">
-    <img src="./assets/logo.png"
-         class="w-[110px] h-[110px] rounded-xl object-contain border border-gray-600 shadow-lg mb-2" />
-
+    <img src="./assets/logo.png" class="w-[110px] h-[110px] rounded-xl object-contain border border-gray-600 shadow-lg mb-2" />
     <div>
       <p class="text-xs text-gray-300">Logged in as</p>
       <p id="header-username" class="text-lg font-bold">Guest</p>
@@ -136,18 +119,14 @@
   <!-- LEADERBOARD -->
   <div id="screen-leaderboard" class="hidden">
     <h2 class="text-xl font-bold mb-1">Leaderboard</h2>
-
     <div class="flex gap-2 mb-3">
-      <button id="btn-leaderboard-biggest"
-              class="flex-1 py-2 rounded text-sm font-bold bg-blue-600 text-white">
+      <button id="btn-leaderboard-biggest" class="flex-1 py-2 rounded text-sm font-bold bg-blue-600 text-white">
         Biggest Carp
       </button>
-      <button id="btn-leaderboard-total"
-              class="flex-1 py-2 rounded text-sm font-bold bg-gray-700 text-gray-200">
+      <button id="btn-leaderboard-total" class="flex-1 py-2 rounded text-sm font-bold bg-gray-700 text-gray-200">
         Total Weight
       </button>
     </div>
-
     <div id="leaderboard-list" class="space-y-2 text-sm">
       <p class="text-gray-400 text-sm">Loading leaderboard...</p>
     </div>
@@ -161,7 +140,6 @@ if ('serviceWorker' in navigator) {
 }
 </script>
 
-<!-- MAIN APP -->
 <script type="module">
 /* FIREBASE */
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-app.js";
@@ -189,28 +167,19 @@ const auth = getAuth(app);
 /* VIBRATION */
 function vibratePattern() {
   if (navigator.vibrate) {
-    navigator.vibrate([200, 100, 200, 100, 200, 100]);
+    navigator.vibrate([200,100,200,100,200,100]);
   }
 }
-function stopVibration() {
-  if (navigator.vibrate) {
-    navigator.vibrate(0);
-  }
-}
+function stopVibration(){ if(navigator.vibrate) navigator.vibrate(0); }
 
 /* PB POPUP */
-function showPBPopup(text) {
-  const popup = document.getElementById("pb-popup");
-  const pbText = document.getElementById("pb-text");
-
-  pbText.textContent = text;
+function showPBPopup(text){
+  const popup=document.getElementById("pb-popup");
+  const pbText=document.getElementById("pb-text");
+  pbText.textContent=text;
   popup.classList.remove("hidden");
   popup.classList.add("flex");
-
-  setTimeout(() => {
-    popup.classList.add("hidden");
-    popup.classList.remove("flex");
-  }, 2800);
+  setTimeout(()=>{popup.classList.add("hidden");},2800);
 }
 
 /* DOM REFERENCES */
@@ -261,8 +230,8 @@ function createDefaultProfile(username="Guest"){
   };
 }
 
-function hideStartupOverlay(){startupOverlay.style.display="none";}
-function showStartupOverlay(){startupOverlay.style.display="flex";}
+function hideStartupOverlay(){ startupOverlay.style.display="none"; }
+function showStartupOverlay(){ startupOverlay.style.display="flex"; }
 
 function updateProfileUI(){
   if(!profile)return;
@@ -275,11 +244,9 @@ function updateProfileUI(){
 
 async function loadProfileFromCloud(){
   if (!profileId) return;
-
   try{
     const ref=doc(db,"players",profileId);
     const snap=await getDoc(ref);
-
     if(snap.exists()){
       profile=snap.data();
       if(!profile.stats){
@@ -291,92 +258,80 @@ async function loadProfileFromCloud(){
       profile=null;
       showStartupOverlay();
     }
-  }catch(e){
-    console.error("Error loading profile:", e);
-    if(!profile){
-      profile=createDefaultProfile("Guest");
-      updateProfileUI();
-    }
+  }catch{
+    if(!profile) profile=createDefaultProfile("Guest");
+    updateProfileUI();
     showStartupOverlay();
   }
 }
 
 async function saveProfileToCloud(){
   if(!profileId||!profile)return;
-  try {
-    await setDoc(doc(db,"players",profileId),{
-      ...profile,updatedAt:serverTimestamp()
-    });
-  } catch (e) {
-    console.error("Error saving profile:", e);
-  }
+  await setDoc(doc(db,"players",profileId),{
+    ...profile,
+    updatedAt:serverTimestamp()
+  });
 }
 
-/* AUTH + PROFILE INIT (ANONYMOUS LOGIN) */
-function initAuthAndProfile() {
-  onAuthStateChanged(auth, async (user) => {
-    if (user) {
-      profileId = user.uid;
+/* AUTH */
+function initAuthAndProfile(){
+  onAuthStateChanged(auth, async (user)=>{
+    if(user){
+      profileId=user.uid;
       await loadProfileFromCloud();
-    } else {
-      try {
-        await signInAnonymously(auth);
-      } catch (e) {
-        console.error("Anonymous sign-in failed:", e);
-        if (!profile) {
-          profile = createDefaultProfile("Guest");
-          updateProfileUI();
-        }
+    }else{
+      try{ await signInAnonymously(auth); }
+      catch{
+        if(!profile) profile=createDefaultProfile("Guest");
+        updateProfileUI();
         showStartupOverlay();
       }
     }
   });
 }
 
-/* STARTUP OVERLAY BUTTONS */
+/* STARTUP BUTTONS */
 saveProfileBtn.addEventListener("click",()=>{
   const name=nameInput.value.trim();
   if(!name){alert("Enter username");return;}
-
-  if(!profile){profile=createDefaultProfile(name);}
-  else{profile.username=name;}
-
+  if(!profile) profile=createDefaultProfile(name);
+  else profile.username=name;
   updateProfileUI();
   hideStartupOverlay();
   saveProfileToCloud();
 });
 
 continueBtn.addEventListener("click",()=>{
-  if(!profile){
-    profile=createDefaultProfile("Guest");
-  }
+  if(!profile) profile=createDefaultProfile("Guest");
   updateProfileUI();
   hideStartupOverlay();
   saveProfileToCloud();
 });
 
-/* FISHING LOGIC */
+/* FISHING */
 let isFishing=false;
-let countdownValue=0;
 let biteTimeout=null;
 let catchTimer=null;
 
 const alarmSound=new Audio("./assets/CarpRunSound001.mp3");
 alarmSound.loop=true;
 
-function startAlarm(){alarmSound.currentTime=0;alarmSound.play().catch(()=>{});}
-function stopAlarm(){alarmSound.pause();alarmSound.currentTime=0;}
+function startAlarm(){ alarmSound.currentTime=0; alarmSound.play().catch(()=>{}); }
+function stopAlarm(){ alarmSound.pause(); alarmSound.currentTime=0; }
 
-function setStatus(t){currentStatusEl.textContent=t;}
+function setStatus(t){ currentStatusEl.textContent=t; }
 
-function toggleFishing(){isFishing?stopFishing():startFishing();}
+function toggleFishing(){ isFishing ? stopFishing() : startFishing(); }
 
 function startFishing(){
   isFishing=true;
   toggleFishingButton.textContent="Stop Fishing";
   setStatus("Fishing...");
   timeToBiteEl.textContent="Waiting...";
-  const waitMs=Math.floor(Math.random()*(60000-5000))+5000; // 5–60s
+
+  /* UPDATED BITE TIME — 20s to 30min */
+  const waitMs = Math.floor(Math.random() * (1800000 - 20000)) + 20000;
+
   biteTimeout=setTimeout(startBite,waitMs);
 }
 
@@ -392,9 +347,11 @@ function stopFishing(){
   reelButton.classList.add("hidden");
 }
 
+/* BITE START */
 function startBite(){
   if(!isFishing)return;
-  countdownValue=15;
+
+  let countdownValue=15;
   setStatus("RUN! RUN!");
   timeToBiteEl.textContent="Fish on!";
   reelButton.textContent=`Reel In! (${countdownValue}s)`;
@@ -420,150 +377,121 @@ function startBite(){
   },1000);
 }
 
-/* UPDATED FISH GENERATION:
-   - 4–17 kg: 85% (most fish)
-   - 17–25 kg: 12% (rare)
-   - 25–55 kg: 3% (very rare monsters)
-   Catfish more common, especially at bigger sizes.
-*/
-function generateFish() {
-  const speciesList = [
-    "Common Carp",
-    "Mirror Carp",
-    "Fully Scaled Carp",
-    "Ghost Carp",
-    "Koi Carp",
-    "Catfish"
-  ];
-
-  // Decide weight tier first
-  const roll = Math.random();
+/* FISH GENERATOR (unchanged perfect version) */
+function generateFish(){
   let weightKg;
+  const roll=Math.random();
 
-  if (roll < 0.85) {
-    // 85%: normal fish, 4–17 kg
-    weightKg = Math.random() * (17 - 4) + 4;
-  } else if (roll < 0.97) {
-    // 12%: decent big fish, 17–25 kg
-    weightKg = Math.random() * (25 - 17) + 17;
-  } else {
-    // 3%: true monsters, 25–55 kg
-    weightKg = Math.random() * (55 - 25) + 25;
-  }
+  if(roll<0.85) weightKg=Math.random()*(17-4)+4;
+  else if(roll<0.97) weightKg=Math.random()*(25-17)+17;
+  else weightKg=Math.random()*(55-25)+25;
 
-  // Species weighting: carp 17kg+ are rare, catfish more common as weight increases
+  const r2=Math.random();
   let species;
-  const r2 = Math.random();
 
-  if (weightKg < 17) {
-    // Mostly smaller carp, some catfish
-    if (r2 < 0.25)      species = "Common Carp";
-    else if (r2 < 0.45) species = "Mirror Carp";
-    else if (r2 < 0.60) species = "Fully Scaled Carp";
-    else if (r2 < 0.72) species = "Ghost Carp";
-    else if (r2 < 0.80) species = "Koi Carp";
-    else                species = "Catfish";      // ~20% catfish here
-  } else if (weightKg < 25) {
-    // Bigger fish: catfish significantly more common
-    if (r2 < 0.40)      species = "Catfish";      // 40% catfish
-    else if (r2 < 0.52) species = "Common Carp";
-    else if (r2 < 0.64) species = "Mirror Carp";
-    else if (r2 < 0.76) species = "Fully Scaled Carp";
-    else if (r2 < 0.88) species = "Ghost Carp";
-    else                species = "Koi Carp";
-  } else {
-    // Monsters: catfish dominate
-    if (r2 < 0.60)      species = "Catfish";      // 60% catfish
-    else if (r2 < 0.68) species = "Common Carp";
-    else if (r2 < 0.76) species = "Mirror Carp";
-    else if (r2 < 0.84) species = "Fully Scaled Carp";
-    else if (r2 < 0.92) species = "Ghost Carp";
-    else                species = "Koi Carp";
+  if(weightKg<17){
+    if(r2<0.25) species="Common Carp";
+    else if(r2<0.45) species="Mirror Carp";
+    else if(r2<0.60) species="Fully Scaled Carp";
+    else if(r2<0.72) species="Ghost Carp";
+    else if(r2<0.80) species="Koi Carp";
+    else species="Catfish";
+  }
+  else if(weightKg<25){
+    if(r2<0.40) species="Catfish";
+    else if(r2<0.52) species="Common Carp";
+    else if(r2<0.64) species="Mirror Carp";
+    else if(r2<0.76) species="Fully Scaled Carp";
+    else if(r2<0.88) species="Ghost Carp";
+    else species="Koi Carp";
+  }
+  else{
+    if(r2<0.60) species="Catfish";
+    else if(r2<0.68) species="Common Carp";
+    else if(r2<0.76) species="Mirror Carp";
+    else if(r2<0.84) species="Fully Scaled Carp";
+    else if(r2<0.92) species="Ghost Carp";
+    else species="Koi Carp";
   }
 
-  weightKg = parseFloat(weightKg.toFixed(1));
-  const weightLb = parseFloat((weightKg * 2.20462).toFixed(1));
+  weightKg=parseFloat(weightKg.toFixed(1));
+  const weightLb=parseFloat((weightKg*2.20462).toFixed(1));
 
-  return { species, weightKg, weightLb, time:new Date().toLocaleString() };
+  return{
+    species, weightKg, weightLb,
+    time:new Date().toLocaleString()
+  };
 }
 
-/* IMAGE SELECTION */
-function getFishImage(species, weightKg) {
-  let tier;
-  if (weightKg < 17) tier = "small";
-  else if (weightKg < 30) tier = "big";
-  else tier = "monster";
+/* IMAGE LOADER */
+function getFishImage(species, weightKg){
+  let tier="small";
+  if(weightKg>=17 && weightKg<30) tier="big";
+  if(weightKg>=30) tier="monster";
 
-  let key = "";
-  switch (species) {
-    case "Common Carp": key = "common"; break;
-    case "Mirror Carp": key = "mirror"; break;
-    case "Fully Scaled Carp": key = "fullyscaled"; break;
-    case "Ghost Carp": key = "ghost"; break;
-    case "Koi Carp": key = "koi"; break;
-    case "Catfish": key = "catfish"; break;
-    default: key = "common";
+  let key="";
+  switch(species){
+    case "Common Carp": key="common"; break;
+    case "Mirror Carp": key="mirror"; break;
+    case "Fully Scaled Carp": key="fullyscaled"; break;
+    case "Ghost Carp": key="ghost"; break;
+    case "Koi Carp": key="koi"; break;
+    case "Catfish": key="catfish"; break;
   }
 
   return `assets/fish/${tier}_${key}.png`;
 }
 
-/* APPLY STATS + PB POPUP */
+/* APPLY STATS */
 function applyStats(fish){
   if(!profile)return;
 
-  let isPB = false;
-  let pbMessage = "";
+  let isPB=false;
+  let msg="";
+  const kg=fish.weightKg;
+  const lb=fish.weightLb;
 
-  const kg = fish.weightKg;
-  const lb = fish.weightLb;
-  const species = fish.species;
+  profile.stats.totalWeightKg+=kg;
 
-  profile.stats.totalWeightKg += kg;
-
-  if (species !== "Catfish" && kg > profile.stats.biggestCarpKg) {
-    profile.stats.biggestCarpKg = kg;
-    isPB = true;
-    pbMessage = `NEW PB! ${lb} lb ${species}`;
+  if(fish.species!=="Catfish" && kg>profile.stats.biggestCarpKg){
+    profile.stats.biggestCarpKg=kg;
+    isPB=true;
+    msg=`NEW PB! ${lb} lb ${fish.species}`;
   }
 
-  if (species === "Common Carp" && kg > profile.stats.biggestCommonKg) {
-    profile.stats.biggestCommonKg = kg;
-    isPB = true;
-    pbMessage = `NEW PB! ${lb} lb Common Carp`;
+  if(fish.species==="Common Carp" && kg>profile.stats.biggestCommonKg){
+    profile.stats.biggestCommonKg=kg;
+    isPB=true;
+    msg=`NEW PB! ${lb} lb Common Carp`;
   }
 
-  if (species === "Mirror Carp" && kg > profile.stats.biggestMirrorKg) {
-    profile.stats.biggestMirrorKg = kg;
-    isPB = true;
-    pbMessage = `NEW PB! ${lb} lb Mirror Carp`;
+  if(fish.species==="Mirror Carp" && kg>profile.stats.biggestMirrorKg){
+    profile.stats.biggestMirrorKg=kg;
+    isPB=true;
+    msg=`NEW PB! ${lb} lb Mirror Carp`;
   }
 
   updateProfileUI();
   saveProfileToCloud();
 
-  if (isPB) showPBPopup(pbMessage);
+  if(isPB) showPBPopup(msg);
 }
 
 /* DISPLAY CATCH */
 function displayCatch(fish){
-  const imgPath = getFishImage(fish.species, fish.weightKg);
+  const img=getFishImage(fish.species, fish.weightKg);
 
   logContentEl.innerHTML=`
     <div class="flex flex-col items-center">
-      <img src="${imgPath}"
-           alt="${fish.species}"
-           class="w-full max-h-64 object-contain mb-3 rounded-lg border border-gray-700 bg-black" />
-      <p class="text-yellow-400 text-xl font-bold">
-        ${fish.weightKg} kg (${fish.weightLb} lb)
-      </p>
+      <img src="${img}" class="w-full max-h-64 object-contain mb-3 rounded-lg border border-gray-700 bg-black" />
+      <p class="text-yellow-400 text-xl font-bold">${fish.weightKg} kg (${fish.weightLb} lb)</p>
       <p class="font-bold">${fish.species}</p>
       <p class="text-gray-400 text-sm">${fish.time}</p>
     </div>
   `;
 }
 
-/* REEL-IN: NO AUTO RESTART */
+/* REEL IN */
 function reelIn(){
   clearInterval(catchTimer);
   stopAlarm();
@@ -577,8 +505,8 @@ function reelIn(){
   applyStats(fish);
   displayCatch(fish);
 
-  isFishing = false;
-  toggleFishingButton.textContent = "Start Fishing";
+  isFishing=false;
+  toggleFishingButton.textContent="Start Fishing";
 }
 
 /* LEADERBOARD */
@@ -605,51 +533,46 @@ async function loadLeaderboard(mode){
 
   try{
     const playersRef=collection(db,"players");
-    const field=mode==="total"
-      ?"stats.totalWeightKg"
-      :"stats.biggestCarpKg";
-
+    const field = mode==="total" ? "stats.totalWeightKg" : "stats.biggestCarpKg";
     const q=query(playersRef,orderBy(field,"desc"),limit(10));
     const snap=await getDocs(q);
 
     if(snap.empty){
-      leaderboardList.innerHTML=`<p class="text-gray-400">No records yet.</p>`;
+      leaderboardList.innerHTML=`<p class="text-gray-400">No entries yet.</p>`;
       return;
     }
 
-    let html="";
-    let index=0;
+    let html="", index=0;
     snap.forEach(docSnap=>{
-      const d=docSnap.data()||{};
-      const s=d.stats||{};
+      const d=docSnap.data();
+      const s=d.stats;
 
       let medal=index+1+".";
-      if(index===0)medal="🥇";
-      else if(index===1)medal="🥈";
-      else if(index===2)medal="🥉";
+      if(index===0) medal="🥇";
+      else if(index===1) medal="🥈";
+      else if(index===2) medal="🥉";
 
-      const statValue=mode==="total"
-        ?`${(s.totalWeightKg||0).toFixed(1)} kg`
-        :`${(s.biggestCarpKg||0).toFixed(1)} kg`;
+      const value = mode==="total"
+        ? `${s.totalWeightKg.toFixed(1)} kg`
+        : `${s.biggestCarpKg.toFixed(1)} kg`;
 
       html+=`
         <div class="flex items-center justify-between bg-gray-800 rounded-lg px-3 py-2 border border-gray-700">
           <div class="flex items-center gap-3">
             <div class="text-xl">${medal}</div>
             <div>
-              <p class="font-bold text-sm">${d.username||"Unknown"}</p>
-              <p class="text-xs text-gray-400">
-                ${mode==="total" ? "Total Weight" : "Biggest Carp"}
-              </p>
+              <p class="font-bold text-sm">${d.username}</p>
+              <p class="text-xs text-gray-400">${mode==="total" ? "Total Weight" : "Biggest Carp"}</p>
             </div>
           </div>
-          <div class="font-bold text-sm text-yellow-300">${statValue}</div>
+          <div class="font-bold text-yellow-300">${value}</div>
         </div>
       `;
       index++;
     });
 
     leaderboardList.innerHTML=html;
+
   }catch{
     leaderboardList.innerHTML=`<p class="text-red-400">Error loading leaderboard.</p>`;
   }
@@ -675,10 +598,12 @@ function showTab(tab){
   if(tab==="fishing"){
     screenFishing.classList.remove("hidden");
     tabFishing.classList.add("tab-active");
-  }else if(tab==="profile"){
+  }
+  else if(tab==="profile"){
     screenProfile.classList.remove("hidden");
     tabProfile.classList.add("tab-active");
-  }else{
+  }
+  else{
     screenLeaderboard.classList.remove("hidden");
     tabLeaderboard.classList.add("tab-active");
     loadLeaderboard(currentLeaderboardMode);
@@ -688,8 +613,6 @@ function showTab(tab){
 tabFishing.addEventListener("click",()=>showTab("fishing"));
 tabProfile.addEventListener("click",()=>showTab("profile"));
 tabLeaderboard.addEventListener("click",()=>showTab("leaderboard"));
-
-/* BUTTONS */
 toggleFishingButton.addEventListener("click",toggleFishing);
 reelButton.addEventListener("click",reelIn);
 
