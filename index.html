@@ -3,8 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Carp Run Alarm Simulator</title>
-
+  <title>Carp Run Simulator</title>
   <meta name="theme-color" content="#111827" />
   <link rel="manifest" href="./manifest.webmanifest" />
   <script src="https://cdn.tailwindcss.com"></script>
@@ -32,43 +31,39 @@
 
 <body class="p-4 text-white flex justify-center min-h-screen">
 
+<!-- STARTUP PROFILE SCREEN -->
+<div id="startup-overlay">
+  <div class="bg-gray-800 p-6 rounded-xl w-full max-w-sm border border-gray-700 text-center">
+
+    <img src="./assets/logo.png"
+         class="w-28 h-28 mx-auto mb-4 rounded-lg object-contain border border-gray-600 shadow-xl" />
+
+    <h1 class="text-2xl font-bold mb-2">Create Profile</h1>
+    <input id="profile-name-input" placeholder="Enter username"
+           class="w-full p-2 mb-4 bg-gray-700 border border-gray-600 rounded text-center" />
+
+    <button id="save-profile-btn" class="w-full py-2 bg-blue-600 font-bold rounded mb-3">
+      Save Profile & Start
+    </button>
+
+    <button id="continue-btn"
+            class="w-full py-2 bg-gray-600 font-bold rounded text-sm">
+      Continue as Guest
+    </button>
+  </div>
+</div>
+
+<!-- MAIN CONTAINER -->
 <div id="app-container" class="max-w-lg w-full bg-gray-900 p-4 rounded-xl border border-gray-700">
 
-  <!-- STARTUP PROFILE SCREEN -->
-  <div id="startup-overlay">
-    <div class="bg-gray-800 p-6 rounded-xl w-full max-w-sm border border-gray-700 text-center">
-      <img src="./assets/logo.png"
-           class="w-28 h-28 mx-auto mb-4 rounded-lg object-contain border border-gray-600 shadow-xl" />
-
-      <h1 class="text-2xl font-bold mb-2">Create Profile</h1>
-      <p class="text-sm text-gray-300 mb-3">Choose a username to begin.</p>
-
-      <input id="profile-name-input" placeholder="Enter username"
-             class="w-full p-2 mb-4 bg-gray-700 border border-gray-600 rounded text-center" />
-
-      <button id="save-profile-btn" class="w-full py-2 bg-blue-600 font-bold rounded mb-3">
-        Save Profile & Start
-      </button>
-
-      <button id="continue-btn"
-              class="w-full py-2 bg-gray-600 font-bold rounded text-sm">
-        Continue as Guest
-      </button>
-    </div>
-  </div>
-
-  <!-- HEADER -->
   <div class="flex flex-col items-center text-center mb-4 mt-2">
-    <img src="./assets/logo.png"
-         class="w-[110px] h-[110px] rounded-xl object-contain border border-gray-600 shadow-lg mb-2" />
-
+    <img src="./assets/logo.png" class="w-[110px] h-[110px] rounded-xl object-contain border border-gray-600 shadow-lg mb-2" />
     <div>
       <p class="text-xs text-gray-300">Logged in as</p>
       <p id="header-username" class="text-lg font-bold">Guest</p>
     </div>
   </div>
 
-  <!-- TABS -->
   <div class="flex gap-2 mb-3">
     <button id="tab-fishing" class="flex-1 py-2 rounded tab-active">Fishing</button>
     <button id="tab-profile" class="flex-1 py-2 rounded tab-inactive">Profile</button>
@@ -99,19 +94,105 @@
       </div>
     </div>
   </div>
+
+  <!-- PROFILE SCREEN -->
+  <div id="screen-profile" class="hidden">
+    <h2 class="text-xl font-bold mb-3">Your Stats</h2>
+    <p>Biggest carp: <span id="stat-biggest-carp">0</span> kg</p>
+    <p>Total weight: <span id="stat-total-weight">0</span> kg</p>
+  </div>
+
+  <!-- LEADERBOARD -->
+  <div id="screen-leaderboard" class="hidden">
+    <h2 class="text-xl font-bold mb-1">Leaderboard</h2>
+    <div id="leaderboard-list" class="space-y-2 text-sm"></div>
+  </div>
 </div>
 
+<!-- FIREBASE -->
 <script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-app.js";
+import { getFirestore, doc, getDoc, setDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-firestore.js";
+import { getAuth, onAuthStateChanged, signInAnonymously } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-auth.js";
 
-/* === THE ONLY CHANGE IS HERE === */
-/* Updated random bite time: 5s–5min */
-const MIN_BITE_TIME = 5000;      // 5 seconds
-const MAX_BITE_TIME = 300000;    // 5 minutes
+const firebaseConfig = {
+  apiKey: "AIzaSyASz_xXcEF5pV6CAZR9YfPMUxk_8kS_VTU",
+  authDomain: "carp-simulator-app-394af.firebaseapp.com",
+  projectId: "carp-simulator-app-394af",
+  storageBucket: "carp-simulator-app-394af.firebasestorage.app",
+  messagingSenderId: "761509507210",
+  appId: "1:761509507210:web:1c5bb0d8af518fab3ebd73"
+};
 
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+const auth = getAuth(app);
 
-/* === REST OF THE CODE UNCHANGED === */
+/* -------------- FIXED STARTUP OVERLAY HANDLING -------------- */
+const startupOverlay = document.getElementById("startup-overlay");
+function hideStartupOverlay() { startupOverlay.style.display = "none"; }
+function showStartupOverlay() { startupOverlay.style.display = "flex"; }
 
-/* Fishing Control */
+/* Profile System */
+let profile = null;
+let profileId = null;
+
+function createDefaultProfile(username = "Guest") {
+  return {
+    username,
+    stats: {
+      biggestCarpKg: 0,
+      totalWeightKg: 0,
+    },
+    createdAt: new Date().toISOString()
+  };
+}
+
+async function saveProfile() {
+  await setDoc(doc(db, "players", profileId), profile);
+}
+
+async function loadProfile() {
+  const ref = doc(db, "players", profileId);
+  const snap = await getDoc(ref);
+
+  if (snap.exists()) {
+    profile = snap.data();
+  } else {
+    profile = createDefaultProfile("Guest");
+    await saveProfile();
+  }
+
+  document.getElementById("header-username").textContent = profile.username;
+  hideStartupOverlay(); // <-- FIX ALWAYS HIDES AFTER LOAD
+}
+
+/* AUTH */
+onAuthStateChanged(auth, async (user) => {
+  if (!user) {
+    await signInAnonymously(auth);
+    return;
+  }
+  profileId = user.uid;
+  await loadProfile();
+});
+
+/* Profile create buttons */
+document.getElementById("save-profile-btn").addEventListener("click", async () => {
+  const name = document.getElementById("profile-name-input").value.trim();
+  if (!name) return;
+  profile.username = name;
+  await saveProfile();
+  hideStartupOverlay();
+});
+document.getElementById("continue-btn").addEventListener("click", () => hideStartupOverlay());
+
+/* =====================================================
+   FISHING SYSTEM – ONLY CHANGE HERE IS BITE TIME
+   ===================================================== */
+const MIN_BITE = 5000;     // 5 sec
+const MAX_BITE = 300000;   // 5 min
+
 let isFishing = false;
 let biteTimeout = null;
 let catchTimer = null;
@@ -123,26 +204,20 @@ alarmSound.loop = true;
 function startAlarm(){ alarmSound.currentTime = 0; alarmSound.play().catch(()=>{}); }
 function stopAlarm(){ alarmSound.pause(); alarmSound.currentTime = 0; }
 
-function setStatus(t){
-  document.getElementById("current-status").textContent = t;
-}
+function toggleFishing() { isFishing ? stopFishing() : startFishing(); }
+function setStatus(t) { document.getElementById("current-status").textContent = t; }
 
-function toggleFishing(){
-  isFishing ? stopFishing() : startFishing();
-}
-
-function startFishing(){
+function startFishing() {
   isFishing = true;
   document.getElementById("toggle-fishing-button").textContent = "Stop Fishing";
   setStatus("Fishing...");
   document.getElementById("time-to-bite").textContent = "Waiting...";
 
-  /* UPDATED BITE TIME */
-  const waitMs = Math.floor(Math.random() * (MAX_BITE_TIME - MIN_BITE_TIME)) + MIN_BITE_TIME;
-  biteTimeout = setTimeout(startBite, waitMs);
+  const wait = Math.floor(Math.random() * (MAX_BITE - MIN_BITE)) + MIN_BITE;
+  biteTimeout = setTimeout(startBite, wait);
 }
 
-function stopFishing(){
+function stopFishing() {
   isFishing = false;
   document.getElementById("toggle-fishing-button").textContent = "Start Fishing";
   setStatus("Stopped");
@@ -153,8 +228,8 @@ function stopFishing(){
   document.getElementById("reel-button").classList.add("hidden");
 }
 
-function startBite(){
-  if(!isFishing) return;
+function startBite() {
+  if (!isFishing) return;
   countdownValue = 15;
   setStatus("RUN! RUN!");
   document.getElementById("time-to-bite").textContent = "Fish on!";
@@ -163,16 +238,14 @@ function startBite(){
 
   startAlarm();
 
-  catchTimer = setInterval(()=>{
+  catchTimer = setInterval(() => {
     countdownValue--;
     document.getElementById("reel-button").textContent = `Reel In! (${countdownValue}s)`;
-
-    if(countdownValue <= 0){
+    if (countdownValue <= 0) {
       clearInterval(catchTimer);
-      document.getElementById("reel-button").classList.add("hidden");
       stopAlarm();
+      document.getElementById("reel-button").classList.add("hidden");
       setStatus("Missed run");
-      document.getElementById("time-to-bite").textContent = "Too slow!";
       isFishing = false;
       document.getElementById("toggle-fishing-button").textContent = "Start Fishing";
     }
@@ -180,17 +253,20 @@ function startBite(){
 }
 
 document.getElementById("toggle-fishing-button").addEventListener("click", toggleFishing);
-document.getElementById("reel-button").addEventListener("click", ()=>{
+document.getElementById("reel-button").addEventListener("click", () => {
   clearInterval(catchTimer);
   stopAlarm();
   document.getElementById("reel-button").classList.add("hidden");
-  setStatus("Fish landed!");
-  document.getElementById("time-to-bite").textContent = "Press Start Fishing to cast again.";
-
+  setStatus("Fish landed! 🎣");
   isFishing = false;
   document.getElementById("toggle-fishing-button").textContent = "Start Fishing";
 });
-
 </script>
+
+<script>
+if ("serviceWorker" in navigator) navigator.serviceWorker.register("./service-worker.js");
+</script>
+
 </body>
 </html>
+
