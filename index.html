@@ -10,75 +10,37 @@
   <script src="https://cdn.tailwindcss.com"></script>
 
   <style>
-    body {
-      background:#000;
-      font-family: Inter, system-ui, sans-serif;
-      margin:0;
-      padding:0;
-    }
-    #startup-overlay {
-      position:fixed;
-      inset:0;
-      background:rgba(0,0,0,0.9);
-      display:flex;
-      justify-content:center;
-      align-items:center;
-      z-index:999999;
-    }
+    body { background:#000; font-family:Inter,system-ui,sans-serif; margin:0; padding:0; }
+    #startup-overlay { position:fixed; inset:0; background:rgba(0,0,0,0.9); display:flex; justify-content:center; align-items:center; z-index:999999; }
     .tab-active { background:#3b82f6; color:#fff; }
     .tab-inactive { background:#1f2937; color:#ccc; }
-
-    #pb-popup { backdrop-filter: blur(3px); }
-    @keyframes pbFade {
-      0% { opacity: 0; transform: scale(0.7); }
-      10% { opacity: 1; transform: scale(1); }
-      90% { opacity: 1; transform: scale(1); }
-      100% { opacity: 0; transform: scale(0.7); }
-    }
-    .animate-pb-popup { animation: pbFade 2.8s ease forwards; }
   </style>
 </head>
 
 <body class="p-4 text-white flex justify-center min-h-screen">
 
-<!-- PB POPUP -->
-<div id="pb-popup" class="fixed inset-0 hidden items-center justify-center z-[9999]">
-  <div class="bg-black/80 px-6 py-4 rounded-xl text-center border border-yellow-400 shadow-lg animate-pb-popup">
-    <p id="pb-text" class="text-yellow-300 text-2xl font-extrabold drop-shadow-lg"></p>
+<!-- STARTUP PROFILE SCREEN -->
+<div id="startup-overlay">
+  <div class="bg-gray-800 p-6 rounded-xl w-full max-w-sm border border-gray-700 text-center">
+    <img src="./assets/logo.png" class="w-28 h-28 mx-auto mb-4 rounded-lg object-contain border border-gray-600 shadow-xl" />
+    <h1 class="text-2xl font-bold mb-2">Create Profile</h1>
+    <p class="text-sm text-gray-300 mb-3">Choose a username to begin.</p>
+
+    <input id="profile-name-input" placeholder="Enter username"
+           class="w-full p-2 mb-4 bg-gray-700 border border-gray-600 rounded text-center" />
+
+    <button id="save-profile-btn" class="w-full py-2 bg-blue-600 font-bold rounded mb-3">Save Profile & Start</button>
+    <button id="continue-btn" class="w-full py-2 bg-gray-600 font-bold rounded text-sm">Continue as Guest</button>
+
+    <p class="text-xs text-gray-500 mt-3">(Loads instantly even offline)</p>
   </div>
 </div>
 
 <div id="app-container" class="max-w-lg w-full bg-gray-900 p-4 rounded-xl border border-gray-700">
 
-  <!-- STARTUP PROFILE SCREEN -->
-  <div id="startup-overlay">
-    <div class="bg-gray-800 p-6 rounded-xl w-full max-w-sm border border-gray-700 text-center">
-
-      <img src="./assets/logo.png"
-           class="w-28 h-28 mx-auto mb-4 rounded-lg object-contain border border-gray-600 shadow-xl" />
-
-      <h1 class="text-2xl font-bold mb-2">Create Profile</h1>
-      <p class="text-sm text-gray-300 mb-3">Choose a username to begin.</p>
-
-      <input id="profile-name-input" placeholder="Enter username"
-             class="w-full p-2 mb-4 bg-gray-700 border border-gray-600 rounded text-center" />
-
-      <button id="save-profile-btn" class="w-full py-2 bg-blue-600 font-bold rounded mb-3">
-        Save Profile & Start
-      </button>
-
-      <button id="continue-btn"
-              class="w-full py-2 bg-gray-600 font-bold rounded text-sm">
-        Continue as Guest
-      </button>
-    </div>
-  </div>
-
-  <!-- HEADER WITH BIGGER LOGO -->
+  <!-- HEADER -->
   <div class="flex flex-col items-center text-center mb-4 mt-2">
-    <img src="./assets/logo.png"
-         class="w-[110px] h-[110px] rounded-xl object-contain border border-gray-600 shadow-lg mb-2" />
-
+    <img src="./assets/logo.png" class="w-[110px] h-[110px] rounded-xl object-contain border border-gray-600 shadow-lg mb-2" />
     <div>
       <p class="text-xs text-gray-300">Logged in as</p>
       <p id="header-username" class="text-lg font-bold">Guest</p>
@@ -94,27 +56,17 @@
 
   <!-- FISHING -->
   <div id="screen-fishing">
-    <button id="toggle-fishing-button"
-            class="w-full py-2 bg-yellow-500 text-black font-bold rounded mb-4">
-      Start Fishing
-    </button>
+    <button id="toggle-fishing-button" class="w-full py-2 bg-yellow-500 text-black font-bold rounded mb-4">Start Fishing</button>
 
     <div class="bg-gray-700 p-3 rounded text-center mb-4">
       <p id="current-status" class="text-green-400 font-bold">Stopped</p>
       <p id="time-to-bite" class="text-gray-300 text-sm">Waiting for a bite...</p>
     </div>
 
-    <button id="reel-button"
-            class="hidden w-full py-3 bg-green-500 text-black font-bold rounded mb-4">
-      Reel In!
-    </button>
+    <button id="reel-button" class="hidden w-full py-3 bg-green-500 text-black font-bold rounded mb-4">Reel In!</button>
 
-    <div>
-      <h2 class="font-bold mb-2 border-b border-blue-800">Last Catch</h2>
-      <div id="log-content" class="bg-gray-800 rounded p-3 border-l-4 border-blue-500">
-        No catches yet.
-      </div>
-    </div>
+    <h2 class="font-bold mb-2 border-b border-blue-800">Last Catch</h2>
+    <div id="log-content" class="bg-gray-800 rounded p-3 border-l-4 border-blue-500">No catches yet.</div>
   </div>
 
   <!-- PROFILE -->
@@ -129,41 +81,25 @@
   <!-- LEADERBOARD -->
   <div id="screen-leaderboard" class="hidden">
     <h2 class="text-xl font-bold mb-1">Leaderboard</h2>
-
     <div class="flex gap-2 mb-3">
-      <button id="btn-leaderboard-biggest"
-              class="flex-1 py-2 rounded text-sm font-bold bg-blue-600 text-white">
-        Biggest Carp
-      </button>
-      <button id="btn-leaderboard-total"
-              class="flex-1 py-2 rounded text-sm font-bold bg-gray-700 text-gray-200">
-        Total Weight
-      </button>
+      <button id="btn-leaderboard-biggest" class="flex-1 py-2 rounded text-sm font-bold bg-blue-600 text-white">Biggest Carp</button>
+      <button id="btn-leaderboard-total" class="flex-1 py-2 rounded text-sm font-bold bg-gray-700 text-gray-200">Total Weight</button>
     </div>
-
     <div id="leaderboard-list" class="space-y-2 text-sm">
-      <p class="text-gray-400 text-sm">Loading leaderboard...</p>
+      <p class="text-gray-400">Loading leaderboard...</p>
     </div>
   </div>
 
 </div>
 
 <script>
-if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.register('./service-worker.js');
-}
+if ('serviceWorker' in navigator) navigator.serviceWorker.register('./service-worker.js');
 </script>
 
-<!-- MAIN APP -->
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-app.js";
-import {
-  getFirestore, doc, getDoc, setDoc, serverTimestamp,
-  collection, getDocs, query, orderBy, limit
-} from "https://www.gstatic.com/firebasejs/12.6.0/firebase-firestore.js";
-import {
-  getAuth, onAuthStateChanged, signInAnonymously
-} from "https://www.gstatic.com/firebasejs/12.6.0/firebase-auth.js";
+import { getFirestore, doc, getDoc, setDoc, serverTimestamp, collection, getDocs, query, orderBy, limit } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-firestore.js";
+import { getAuth, onAuthStateChanged, signInAnonymously } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-auth.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyASz_xXcEF5pV6CAZR9YfPMUxk_8kS_VTU",
@@ -178,24 +114,93 @@ const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 const auth = getAuth(app);
 
-/*** ⏱ UPDATED BITE TIME: 5s–5min ***/
-function startFishing(){
-  isFishing=true;
-  toggleFishingButton.textContent="Stop Fishing";
-  setStatus("Fishing...");
-  timeToBiteEl.textContent="Waiting...";
+/* SAFE STARTUP FIX */
+let profile = null;
+let profileId = null;
 
-  // ⬇️ UPDATED LINE ONLY
-  const waitMs=Math.floor(Math.random()*(300000-5000))+5000; // 5s – 5min
-
-  biteTimeout=setTimeout(startBite,waitMs);
+function showOverlay(show) {
+  document.getElementById("startup-overlay").style.display = show ? "flex" : "none";
 }
 
-/*** everything ELSE remains unchanged ***/
+function createDefaultProfile(name="Guest") {
+  return {
+    username: name,
+    stats: { biggestCarpKg:0, biggestCommonKg:0, biggestMirrorKg:0, totalWeightKg:0 }
+  };
+}
 
-/*** THE REST OF YOUR ORIGINAL CODE HERE (unchanged!) ***/
+/* FORCE LOAD EVEN IF FIREBASE FAILS */
+async function initProfileSystem() {
+  showOverlay(true);
+
+  try {
+    await signInAnonymously(auth);
+  } catch {
+    console.warn("Offline mode: no Firebase");
+    profile = createDefaultProfile("Guest");
+    updateProfileUI();
+    showOverlay(false);
+    return;
+  }
+
+  onAuthStateChanged(auth, async (user) => {
+    if (!user) return;
+    profileId = user.uid;
+
+    const ref = doc(db, "players", profileId);
+    const snap = await getDoc(ref);
+
+    if (snap.exists()) profile = snap.data();
+    else profile = createDefaultProfile("Guest");
+
+    updateProfileUI();
+    showOverlay(false);
+  });
+
+  // ⛑ failsafe auto-hide
+  setTimeout(() => showOverlay(false), 4000);
+}
+
+/* UI */
+function updateProfileUI() {
+  headerUsername.textContent = profile.username;
+  statBiggestCarp.textContent = profile.stats.biggestCarpKg.toFixed(1);
+  statBiggestCommon.textContent = profile.stats.biggestCommonKg.toFixed(1);
+  statBiggestMirror.textContent = profile.stats.biggestMirrorKg.toFixed(1);
+  statTotalWeight.textContent = profile.stats.totalWeightKg.toFixed(1);
+}
+
+/* START FISHING (5s–5min) */
+function startFishing() {
+  isFishing = true;
+  toggleFishingButton.textContent = "Stop Fishing";
+  setStatus("Fishing...");
+  const waitMs = Math.floor(Math.random() * (300000 - 5000)) + 5000;
+  biteTimeout = setTimeout(startBite, waitMs);
+}
+
+/* TAB SYSTEM (unchanged) */
+function showTab(tab) {
+  screenFishing.classList.add("hidden");
+  screenProfile.classList.add("hidden");
+  screenLeaderboard.classList.add("hidden");
+
+  if (tab === "fishing") screenFishing.classList.remove("hidden");
+  if (tab === "profile") screenProfile.classList.remove("hidden");
+  if (tab === "leaderboard") {
+    screenLeaderboard.classList.remove("hidden");
+    loadLeaderboard(currentLeaderboardMode);
+  }
+}
+
+/* INIT */
+window.addEventListener("load", () => {
+  initProfileSystem();
+  showTab("fishing");
+});
 </script>
 
 </body>
 </html>
+
 
