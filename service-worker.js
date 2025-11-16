@@ -1,33 +1,43 @@
-const CACHE_NAME = "carp-run-v1";
-const ASSETS_TO_CACHE = [
-  "/",
-  "/index.html",
-  "/manifest.json",
-  "/assets/logo.png",
-  "/assets/icon-192.png",
-  "/assets/icon-512.png",
-  "/assets/CarpRunSound001.mp3"
+const CACHE_NAME = "carp-run-cache-v1";
+const OFFLINE_URL = "./offline.html";
+
+// Cache these files when the service worker installs
+const APP_SHELL = [
+  "./",
+  "./index.html",
+  "./manifest.webmanifest",
+  "./assets/logo.png",
+  "./assets/CarpRunSound001.mp3",
+  "./assets/fish/common_small.png",
+  "./assets/fish/mirror_small.png",
+  "./assets/fish/fullyscaled_small.png",
+  "./assets/fish/ghost_small.png",
+  "./assets/fish/koi_small.png",
+  "./assets/fish/catfish_small.png",
+  "./assets/icon-192.png",
+  "./assets/icon-512.png"
 ];
 
-// Install service worker and cache files
+// Install Service Worker
 self.addEventListener("install", (event) => {
+  console.log("[SW] Install");
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
-      console.log("Caching app shell...");
-      return cache.addAll(ASSETS_TO_CACHE);
+      return cache.addAll(APP_SHELL);
     })
   );
   self.skipWaiting();
 });
 
-// Activate and remove old caches
+// Activate Service Worker
 self.addEventListener("activate", (event) => {
+  console.log("[SW] Activate");
   event.waitUntil(
     caches.keys().then((keys) =>
       Promise.all(
         keys.map((key) => {
           if (key !== CACHE_NAME) {
-            console.log("Deleting old cache:", key);
+            console.log("[SW] Removing old cache:", key);
             return caches.delete(key);
           }
         })
@@ -37,11 +47,19 @@ self.addEventListener("activate", (event) => {
   self.clients.claim();
 });
 
-// Fetch cached content
+// Fetch (cache-first, then network fallback)
 self.addEventListener("fetch", (event) => {
   event.respondWith(
-    caches.match(event.request).then((cachedResponse) => {
-      return cachedResponse || fetch(event.request);
+    caches.match(event.request).then((cached) => {
+      if (cached) {
+        return cached;
+      }
+      return fetch(event.request).catch(() => {
+        // If offline and not in cache
+        if (event.request.mode === "navigate") {
+          return caches.match("./offline.html");
+        }
+      });
     })
   );
 });
