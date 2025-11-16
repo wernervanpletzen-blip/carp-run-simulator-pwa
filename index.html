@@ -377,8 +377,8 @@ function startFishing(){
   setStatus("Fishing...");
   timeToBiteEl.textContent="Waiting...";
   
-  // UPDATED BITE TIME: between 20s (20,000 ms) and 4 mins (240,000 ms)
-  const waitMs=Math.floor(Math.random()*(240000-20000))+20000;
+  // UPDATED BITE TIME: between 20s (20,000 ms) and 3 mins (180,000 ms)
+  const waitMs=Math.floor(Math.random()*(180000-20000))+20000;
 
   biteTimeout=setTimeout(startBite,waitMs);
 }
